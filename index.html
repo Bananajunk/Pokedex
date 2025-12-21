@@ -67,6 +67,12 @@
             70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
             100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
+
+        /* Tooltip styling */
+        .fab-container:hover .fab-tooltip {
+            opacity: 1;
+            transform: translateX(0);
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen font-sans flex flex-col relative">
@@ -149,19 +155,34 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-gray-100 py-6 border-t border-gray-200 mt-auto pb-24">
+    <footer class="bg-gray-100 py-6 border-t border-gray-200 mt-auto pb-32">
         <div class="container mx-auto px-4 text-center text-gray-400 text-xs">
             <p>&copy; 2025 Living Pokédex. Data via <a href="https://pokeapi.co/" target="_blank" class="underline hover:text-gray-600">PokeAPI</a>.</p>
             <p class="mt-1">Pokémon images & names &copy; Nintendo/Game Freak.</p>
         </div>
     </footer>
 
-    <!-- Floating Action Button (FAB) for Voice -->
-    <button id="fabMic" class="fixed bottom-6 right-6 w-16 h-16 bg-red-600 text-white rounded-full shadow-lg flex items-center justify-center z-[90] transition-all hover:bg-red-700 active:scale-95 focus:outline-none" title="Speak to Search">
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
-        </svg>
-    </button>
+    <!-- FAB Container -->
+    <div class="fixed bottom-6 right-6 z-[90] flex flex-col gap-4 items-end">
+        
+        <!-- Camera FAB -->
+        <div class="fab-container relative flex items-center">
+            <div id="cameraTooltip" class="fab-tooltip absolute right-full mr-3 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+                Setup AI Key first
+            </div>
+            <button id="fabCamera" class="w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:bg-blue-600 active:scale-95 focus:outline-none disabled:bg-gray-400 disabled:cursor-not-allowed" title="Identify Pokémon">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </button>
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
+        </div>
+
+        <!-- Mic FAB -->
+        <button id="fabMic" class="w-16 h-16 bg-red-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:bg-red-700 active:scale-95 focus:outline-none" title="Speak to Search">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+            </svg>
+        </button>
+    </div>
 
     <!-- Pokemon Detail Modal -->
     <div id="modal" class="fixed inset-0 bg-black bg-opacity-80 hidden z-[100] flex justify-center items-center p-4 backdrop-blur-sm transition-opacity duration-300 overflow-y-auto">
@@ -305,6 +326,9 @@
         const clearBtn = document.getElementById('clearBtn');
         // FAB Button
         const fabMic = document.getElementById('fabMic');
+        const fabCamera = document.getElementById('fabCamera');
+        const cameraTooltip = document.getElementById('cameraTooltip');
+        const cameraInput = document.getElementById('cameraInput');
         
         const statusMsg = document.getElementById('statusMsg');
         const noResults = document.getElementById('noResults');
@@ -321,6 +345,7 @@
 
         // --- Initialize ---
         init();
+        updateFabStates();
         apiKeyInput.value = GEMINI_API_KEY; 
         modelSelect.value = GEMINI_MODEL;
 
@@ -356,6 +381,20 @@
             const el = document.getElementById('settingsModal');
             el.classList.toggle('hidden');
             fetchStatus.textContent = "";
+        }
+
+        function updateFabStates() {
+            if (GEMINI_API_KEY) {
+                fabCamera.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-gray-400');
+                fabCamera.classList.add('bg-blue-500', 'hover:bg-blue-600', 'active:scale-95');
+                fabCamera.disabled = false;
+                cameraTooltip.classList.add('hidden'); // Fix: Hide tooltip if key exists
+            } else {
+                fabCamera.classList.add('opacity-50', 'cursor-not-allowed', 'bg-gray-400');
+                fabCamera.classList.remove('bg-blue-500', 'hover:bg-blue-600', 'active:scale-95');
+                fabCamera.disabled = false; 
+                cameraTooltip.classList.remove('hidden'); // Fix: Show tooltip if key missing
+            }
         }
 
         async function fetchAvailableModels() {
@@ -429,14 +468,16 @@
             GEMINI_API_KEY = key;
             GEMINI_MODEL = model;
             
+            updateFabStates();
             toggleSettings();
-            alert(`Settings Saved!\nModel: ${model}\nVoice Active.`);
+            alert(`Settings Saved!\nModel: ${model}\nVoice & Vision Active.`);
         }
 
         function resetKey() {
             localStorage.removeItem('gemini_api_key');
             GEMINI_API_KEY = "";
             apiKeyInput.value = "";
+            updateFabStates();
             alert("Key cleared. Using Browser Voice.");
         }
         
@@ -446,6 +487,100 @@
                 errorModal.classList.remove('hidden');
             }
         }
+
+        // --- Camera Logic ---
+        fabCamera.addEventListener('click', () => {
+            if (!GEMINI_API_KEY) {
+                // Show help toast/message
+                statusMsg.textContent = "Setup AI Key for Photo Search";
+                statusMsg.className = "text-xs text-red-500 font-bold animate-pulse cursor-pointer";
+                // Show settings modal after delay
+                setTimeout(() => toggleSettings(), 800);
+                return;
+            }
+            cameraInput.click();
+        });
+
+        cameraInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Show loading state
+            fabCamera.classList.add('ai-processing');
+            statusMsg.textContent = "Analyzing Image...";
+            statusMsg.className = "text-xs font-bold text-purple-600 animate-pulse";
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = async () => {
+                const base64data = reader.result.split(',')[1];
+                let mimeType = reader.result.split(',')[0].match(/:(.*?);/)[1];
+                await sendImageToGemini(base64data, mimeType);
+                // Clear input
+                cameraInput.value = ''; 
+                fabCamera.classList.remove('ai-processing');
+            };
+        });
+
+        async function sendImageToGemini(base64data, mimeType) {
+            const prompt = `
+                Look at this image. If it is a Pokemon (or a drawing of one), identify it.
+                Return ONLY valid JSON: {"name": "Pikachu"}.
+                If you cannot identify it as a Pokemon, return {"name": "null", "reason": "Not a Pokemon"}.
+            `;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: prompt },
+                                { inlineData: { mimeType: mimeType, data: base64data } }
+                            ]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    lastErrorDetail = JSON.stringify(data.error, null, 2);
+                    statusMsg.innerHTML = `<span class="block">Vision Error</span><span class="block text-xs font-normal opacity-75">(Tap for Details)</span>`;
+                    statusMsg.className = "text-sm text-red-700 font-bold cursor-pointer bg-red-100 p-2 rounded shadow-sm hover:bg-red-200 text-center select-none w-full border border-red-300";
+                    return;
+                }
+
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                let pokeName = null;
+                try {
+                    const jsonStr = text.match(/\{.*\}/s)?.[0];
+                    if (jsonStr) {
+                        const parsed = JSON.parse(jsonStr);
+                        pokeName = parsed.name;
+                    }
+                } catch (e) {}
+
+                if (pokeName && pokeName !== "null") {
+                    statusMsg.textContent = `AI Found: "${pokeName}"`;
+                    statusMsg.className = "text-xs text-green-600 font-bold";
+                    searchInput.value = pokeName;
+                    filterPokemon();
+                } else {
+                    statusMsg.textContent = "AI could not identify Pokemon.";
+                    statusMsg.className = "text-xs text-red-500 italic";
+                }
+
+            } catch (error) {
+                lastErrorDetail = error.message;
+                statusMsg.innerHTML = `<span class="block">Network Error</span><span class="block text-xs font-normal opacity-75">(Tap for Details)</span>`;
+                statusMsg.className = "text-sm text-red-700 font-bold cursor-pointer bg-red-100 p-2 rounded shadow-sm hover:bg-red-200 text-center select-none w-full border border-red-300";
+            }
+        }
+
 
         // --- Main Voice Handler ---
         fabMic.addEventListener('click', () => {
@@ -464,7 +599,7 @@
                 return;
             }
 
-            // Fix: Check if already listening to toggle off
+            // Check if already listening to toggle off
             if (fabMic.classList.contains('browser-listening')) {
                 if (browserRecognition) browserRecognition.stop();
                 return;
