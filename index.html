@@ -73,6 +73,50 @@
             opacity: 1;
             transform: translateX(0);
         }
+        
+        /* Game Tag Specific Colors */
+        .game-tag {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.025em;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+            white-space: nowrap;
+        }
+        /* Classic */
+        .tag-red { background: #fee2e2; color: #991b1b; }
+        .tag-blue { background: #dbeafe; color: #1e40af; }
+        .tag-yellow { background: #fef9c3; color: #854d0e; }
+        .tag-gold { background: #ffedd5; color: #9a3412; }
+        .tag-silver { background: #f3f4f6; color: #374151; }
+        .tag-crystal { background: #e0f2fe; color: #0369a1; }
+        
+        /* Middle Era */
+        .tag-ruby { background: #ffe4e6; color: #be123c; }
+        .tag-sapphire { background: #bfdbfe; color: #1d4ed8; }
+        .tag-emerald { background: #d1fae5; color: #047857; }
+        .tag-diamond { background: #e0f2fe; color: #0284c7; }
+        .tag-pearl { background: #fae8ff; color: #a21caf; }
+        .tag-platinum { background: #f3f4f6; color: #4b5563; }
+        .tag-black { background: #f3f4f6; color: #111827; }
+        .tag-white { background: #ffffff; color: #6b7280; border: 1px solid #e5e7eb; }
+        
+        /* Modern Era */
+        .tag-x { background: #e0e7ff; color: #3730a3; }
+        .tag-y { background: #fce7f3; color: #9d174d; }
+        .tag-sun { background: #ffedd5; color: #c2410c; }
+        .tag-moon { background: #e0f2fe; color: #0f766e; }
+        .tag-sword { background: #dbeafe; color: #1d4ed8; }
+        .tag-shield { background: #fee2e2; color: #b91c1c; }
+        .tag-legends-arceus { background: #fef3c7; color: #92400e; }
+        .tag-scarlet { background: #fff1f2; color: #e11d48; border-color: #fda4af; }
+        .tag-violet { background: #f5f3ff; color: #7c3aed; border-color: #c4b5fd; }
+        
+        .tag-default { background: #f3f4f6; color: #4b5563; }
+
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen font-sans flex flex-col relative">
@@ -216,13 +260,24 @@
                 </div>
             </div>
 
-            <!-- Evolution Section -->
-            <div class="p-6 bg-white">
+            <!-- Evolution Section (Now First) -->
+            <div class="p-6 bg-white border-b border-gray-100">
                 <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">Evolution Path</h3>
                 <div id="evoLoading" class="hidden py-4 text-center">
                     <div class="spinner mx-auto w-8 h-8 border-2"></div>
                 </div>
                 <div id="evoContainer" class="flex flex-row flex-wrap items-center justify-center gap-1 sm:gap-4 min-h-[100px]"></div>
+            </div>
+
+            <!-- Game Appearances Section (Now Second) -->
+            <div class="px-6 py-6 bg-gray-50">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path></svg>
+                    Appearances
+                </h3>
+                <div id="gamesContainer" class="flex flex-wrap gap-2 text-xs">
+                    <span class="italic text-gray-400">Loading...</span>
+                </div>
             </div>
         </div>
     </div>
@@ -337,6 +392,7 @@
         const closeModal = document.getElementById('closeModal');
         const evoContainer = document.getElementById('evoContainer');
         const evoLoading = document.getElementById('evoLoading');
+        const gamesContainer = document.getElementById('gamesContainer');
         const apiKeyInput = document.getElementById('apiKeyInput');
         const modelSelect = document.getElementById('modelSelect');
         const errorModal = document.getElementById('errorModal');
@@ -388,12 +444,12 @@
                 fabCamera.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-gray-400');
                 fabCamera.classList.add('bg-blue-500', 'hover:bg-blue-600', 'active:scale-95');
                 fabCamera.disabled = false;
-                cameraTooltip.classList.add('hidden'); // Fix: Hide tooltip if key exists
+                cameraTooltip.classList.add('hidden'); 
             } else {
                 fabCamera.classList.add('opacity-50', 'cursor-not-allowed', 'bg-gray-400');
                 fabCamera.classList.remove('bg-blue-500', 'hover:bg-blue-600', 'active:scale-95');
                 fabCamera.disabled = false; 
-                cameraTooltip.classList.remove('hidden'); // Fix: Show tooltip if key missing
+                cameraTooltip.classList.remove('hidden');
             }
         }
 
@@ -494,7 +550,6 @@
                 // Show help toast/message
                 statusMsg.textContent = "Setup AI Key for Photo Search";
                 statusMsg.className = "text-xs text-red-500 font-bold animate-pulse cursor-pointer";
-                // Show settings modal after delay
                 setTimeout(() => toggleSettings(), 800);
                 return;
             }
@@ -904,16 +959,75 @@
             document.getElementById('wikiLink').href = `https://bulbapedia.bulbagarden.net/wiki/${formatName(poke.name).replace(' ', '_')}_(Pok%C3%A9mon)`;
             modal.classList.remove('hidden');
             setTimeout(() => { modalContent.classList.remove('scale-95'); modalContent.classList.add('scale-100'); }, 10);
+            
+            // Clear previous content
             evoContainer.innerHTML = '';
+            gamesContainer.innerHTML = '<span class="italic text-gray-400">Loading...</span>';
             evoLoading.classList.remove('hidden');
+
             try {
+                // 1. Fetch Basic Species/Evo Data
                 const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${poke.id}/`);
                 const speciesData = await speciesRes.json();
                 const evoRes = await fetch(speciesData.evolution_chain.url);
                 const evoData = await evoRes.json();
+                
+                // Render Evolution
                 evoLoading.classList.add('hidden');
                 renderEvolutionChain(evoData.chain);
-            } catch (err) { evoLoading.classList.add('hidden'); evoContainer.innerHTML = '<p class="text-gray-400 text-sm italic">Evolution data unavailable.</p>'; }
+
+                // Render Games using Flavor Text Entries
+                // Logic: Extract unique version names from English flavor text entries
+                if (speciesData.flavor_text_entries && speciesData.flavor_text_entries.length > 0) {
+                    gamesContainer.innerHTML = '';
+                    
+                    const uniqueVersions = new Set();
+                    speciesData.flavor_text_entries.forEach(entry => {
+                        if (entry.language.name === 'en') {
+                            uniqueVersions.add(entry.version.name);
+                        }
+                    });
+
+                    if(uniqueVersions.size > 0) {
+                        uniqueVersions.forEach(ver => {
+                            const tag = document.createElement('span');
+                            let colorClass = 'tag-default';
+                            
+                            if(ver.includes('red') || ver.includes('ruby')) colorClass = 'tag-red';
+                            else if(ver.includes('blue') || ver.includes('sapphire')) colorClass = 'tag-blue';
+                            else if(ver.includes('yellow')) colorClass = 'tag-yellow';
+                            else if(ver.includes('gold') || ver.includes('sun')) colorClass = 'tag-gold';
+                            else if(ver.includes('silver') || ver.includes('moon')) colorClass = 'tag-silver';
+                            else if(ver.includes('crystal') || ver.includes('diamond')) colorClass = 'tag-crystal';
+                            else if(ver.includes('emerald')) colorClass = 'tag-emerald';
+                            else if(ver.includes('pearl')) colorClass = 'tag-pearl';
+                            else if(ver.includes('platinum')) colorClass = 'tag-platinum';
+                            else if(ver.includes('black')) colorClass = 'tag-black';
+                            else if(ver.includes('white')) colorClass = 'tag-white';
+                            else if(ver.includes('sword')) colorClass = 'tag-sword';
+                            else if(ver.includes('shield')) colorClass = 'tag-shield';
+                            else if(ver.includes('x')) colorClass = 'tag-x';
+                            else if(ver.includes('y')) colorClass = 'tag-y';
+                            else if(ver.includes('scarlet')) colorClass = 'tag-scarlet';
+                            else if(ver.includes('violet')) colorClass = 'tag-violet';
+                            else if(ver.includes('legends') || ver.includes('arceus')) colorClass = 'tag-legends-arceus';
+
+                            tag.className = `game-tag ${colorClass}`;
+                            tag.textContent = ver.replace(/-/g, ' ');
+                            gamesContainer.appendChild(tag);
+                        });
+                    } else {
+                         gamesContainer.innerHTML = '<span class="italic text-gray-400">No game data found.</span>';
+                    }
+                } else {
+                    gamesContainer.innerHTML = '<span class="italic text-gray-400">No game data found.</span>';
+                }
+
+            } catch (err) { 
+                evoLoading.classList.add('hidden'); 
+                evoContainer.innerHTML = '<p class="text-gray-400 text-sm italic">Data unavailable.</p>'; 
+                gamesContainer.innerHTML = '<p class="text-gray-400 text-sm italic">Game data unavailable.</p>'; 
+            }
         }
 
         function renderEvolutionChain(chainNode) {
@@ -946,6 +1060,19 @@
             const name = formatName(node.species.name);
             const pokeDiv = document.createElement('div');
             pokeDiv.className = "flex flex-col items-center p-1 sm:p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group";
+            
+            pokeDiv.onclick = (e) => {
+                e.stopPropagation(); 
+                const targetPoke = allPokemon.find(p => p.name.toLowerCase() === node.species.name.toLowerCase());
+                if (targetPoke) {
+                    searchInput.value = formatName(targetPoke.name);
+                    filterPokemon(); 
+                    openModal(targetPoke); 
+                } else {
+                    console.warn("Pokemon not found in local list:", name);
+                }
+            };
+
             pokeDiv.innerHTML = `<div class="w-14 h-14 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-1 sm:mb-2 shadow-sm border border-gray-200 group-hover:border-red-200"><img src="${imgUrl}" class="w-10 h-10 sm:w-16 sm:h-16 object-contain"></div><span class="text-[10px] sm:text-xs font-bold text-gray-700 text-center leading-tight max-w-[60px] sm:max-w-none truncate">${name}</span>`;
             return pokeDiv;
         }
