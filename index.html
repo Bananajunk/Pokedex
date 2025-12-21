@@ -11,8 +11,14 @@
     <meta property="og:description" content="Interactive Pokédex with voice search powered by Gemini.">
     <meta property="og:type" content="website">
     
-    <!-- App Icon (Poké Ball) -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23f00%22 stroke=%22%23333%22 stroke-width=%225%22/><path d=%22M5,50 L95,50%22 stroke=%22%23333%22 stroke-width=%2210%22/><circle cx=%2250%22 cy=%2250%22 r=%2215%22 fill=%22%23fff%22 stroke=%22%23333%22 stroke-width=%225%22/><path d=%22M5,50 A45,45 0 0,0 95,50%22 fill=%22%23fff%22/></svg>">
+    <!-- Mobile Web App Settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Pokédex">
+    
+    <!-- App Icons (Base64 PNG for maximum compatibility) -->
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJAAAACQCAMAAADQmBKKAAAAllBMVEUAAAD////7+/v///f///7+/v739/f+/////v///v/39/f7+/v7+/v39/f////7+/v39/f39/f7+/v///7+/v739/f///////7+/v739/f7+/v39/f////39/f7+/v39/f///7+/v739/f///7+/v739/f7+/v39/f7+/v39/f////7+/v39/f7+/v39/f///7+/v739/eFv7XPAAAANXRSTlMA/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8AcgE1WAAAAgZJREFUeNrt211PwjAYB/C220Y32Rzc1L3oRRTjF1D0//9P401j05Yu23l6kv/1QRPTT/v0tC0FAAAAAAAAAAAAAAAAAAAAAAAA4C9V63Z7vX6/PxiMxuPppF0ul8v55Hw8Ho1Gg/5+v2/WbeVf1Op2u91er9/vD4aj8Xg6aZfL5XI+OR+PR6PWoD/o9/tms24r/6JWt9vt9nr9fn8wGI3H00m7XC6X88n5eDwajQb9/X7frNvKv6jV7XZ7vX6/PxiMxuPppF0ul8v55Hw8Ho1Gg/5+v2/WbeVf1Op2u91er9/vD4aj8Xg6aZfL5XI+OR+PR6NBr7/f75t1W/kXtbrdbq/X7/cHg9F4PJ20y+VyOZ+cj8ej0ajf3+/3zbqt/Ita3W631+v3+4PBaDyeTtrla/t6+3y/u7u9ub66vLg4Pzs9Pj46PDg42N/b2d7a3NjYAP5zK0uLzL20sMCspcV/y9LCPHMSC8xJLDAnsQ1mJbbBrMQ2mJXYBrMS22BWYhvMSmyDWYltsJ/EPr+8vr3fPzw+Pb+8vn/c393e3txeX11eXJyfnhwfHx0eHOzv7WxvbW5sbKz+960sLTIrS4vMSiwzK7HMrMQysxLLzEosMyuxzKzEMrMSy8xKLPO3YplZiWVmJZaZlVhmVmKZWYllZiWWmZVYZlZimVmJ/S9/AQAAAAAAAAAAAAAAAAAAAAAAAHjyDe2lH229/6uaAAAAAElFTkSuQmCC">
+    <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJAAAACQCAMAAADQmBKKAAAAllBMVEUAAAD////7+/v///f///7+/v739/f+/////v///v/39/f7+/v7+/v39/f////7+/v39/f39/f7+/v///7+/v739/f///////7+/v739/f7+/v39/f////39/f7+/v39/f///7+/v739/f///7+/v739/f7+/v39/f7+/v39/f////7+/v39/f7+/v39/f///7+/v739/eFv7XPAAAANXRSTlMA/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8AcgE1WAAAAgZJREFUeNrt211PwjAYB/C220Y32Rzc1L3oRRTjF1D0//9P401j05Yu23l6kv/1QRPTT/v0tC0FAAAAAAAAAAAAAAAAAAAAAAAA4C9V63Z7vX6/PxiMxuPppF0ul8v55Hw8Ho1Gg/5+v2/WbeVf1Op2u91er9/vD4aj8Xg6aZfL5XI+OR+PR6PWoD/o9/tms24r/6JWt9vt9nr9fn8wGI3H00m7XC6X88n5eDwajQb9/X7frNvKv6jV7XZ7vX6/PxiMxuPppF0ul8v55Hw8Ho1Gg/5+v2/WbeVf1Op2u91er9/vD4aj8Xg6aZfL5XI+OR+PR6NBr7/f75t1W/kXtbrdbq/X7/cHg9F4PJ20y+VyOZ+cj8ej0ajf3+/3zbqt/Ita3W631+v3+4PBaDyeTtrla/t6+3y/u7u9ub66vLg4Pzs9Pj46PDg42N/b2d7a3NjYAP5zK0uLzL20sMCspcV/y9LCPHMSC8xJLDAnsQ1mJbbBrMQ2mJXYBrMS22BWYhvMSmyDWYltsJ/EPr+8vr3fPzw+Pb+8vn/c393e3txeX11eXJyfnhwfHx0eHOzv7WxvbW5sbKz+960sLTIrS4vMSiwzK7HMrMQysxLLzEosMyuxzKzEMrMSy8xKLPO3YplZiWVmJZaZlVhmVmKZWYllZiWWmZVYZlZimVmJ/S9/AQAAAAAAAAAAAAAAAAAAAAAAAHjyDe2lH229/6uaAAAAAElFTkSuQmCC">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -550,6 +556,7 @@
                 // Show help toast/message
                 statusMsg.textContent = "Setup AI Key for Photo Search";
                 statusMsg.className = "text-xs text-red-500 font-bold animate-pulse cursor-pointer";
+                // Show settings modal after delay
                 setTimeout(() => toggleSettings(), 800);
                 return;
             }
