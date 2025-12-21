@@ -3,34 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Living Pokédex</title>
+    <title>Living Pokédex & Evolutions</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom scrollbar for a cleaner look */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #ef4444; /* Tailwind red-500 */
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #dc2626; /* Tailwind red-600 */
-        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #ef4444; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #dc2626; }
         
         /* Card hover effect */
-        .poke-card {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .poke-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
+        .poke-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .poke-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
 
-        /* Loading spinner animation */
+        /* Loading spinner */
         .spinner {
             border: 4px solid #f3f3f3;
             border-top: 4px solid #ef4444;
@@ -39,43 +25,15 @@
             height: 40px;
             animation: spin 1s linear infinite;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .type-pill {
-            text-transform: capitalize;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-        }
-        /* Simple mapping for type colors (optional visual flair) */
-        .bg-grass { background-color: #78c850; }
-        .bg-poison { background-color: #a040a0; }
-        .bg-fire { background-color: #f08030; }
-        .bg-flying { background-color: #a890f0; }
-        .bg-water { background-color: #6890f0; }
-        .bg-bug { background-color: #a8b820; }
-        .bg-normal { background-color: #a8a878; }
-        .bg-electric { background-color: #f8d030; }
-        .bg-ground { background-color: #e0c068; }
-        .bg-fairy { background-color: #ee99ac; }
-        .bg-fighting { background-color: #c03028; }
-        .bg-psychic { background-color: #f85888; }
-        .bg-rock { background-color: #b8a038; }
-        .bg-steel { background-color: #b8b8d0; }
-        .bg-ice { background-color: #98d8d8; }
-        .bg-ghost { background-color: #705898; }
-        .bg-dragon { background-color: #7038f8; }
-        .bg-dark { background-color: #705848; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen font-sans">
 
-    <!-- Header / Nav -->
+    <!-- Header -->
     <header class="bg-red-600 text-white sticky top-0 z-50 shadow-md">
         <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-2">
-                <!-- Pokeball Icon SVG -->
+            <div class="flex items-center gap-2 cursor-pointer" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
                 <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 2a8 8 0 0 1 7.93 7h-4.09a4 4 0 0 0-7.68 0H4.07A8 8 0 0 1 12 4zm0 16a8 8 0 0 1-7.93-7h4.09a4 4 0 0 0 7.68 0h4.07A8 8 0 0 1 12 20z"/>
                     <circle cx="12" cy="12" r="2"/>
@@ -83,34 +41,32 @@
                 <h1 class="text-2xl font-bold tracking-tight">Living Pokédex</h1>
             </div>
 
-            <!-- Controls -->
-            <div class="flex flex-col sm:flex-row w-full md:w-auto gap-3">
-                <!-- Search -->
+            <div class="flex flex-col sm:flex-row w-full md:w-auto gap-3 items-center">
                 <div class="relative w-full sm:w-64">
-                    <input 
-                        type="text" 
-                        id="searchInput" 
-                        placeholder="Search by name..." 
-                        class="w-full px-4 py-2 rounded-full text-gray-800 border-none focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                    >
+                    <input type="text" id="searchInput" placeholder="Search name or number..." class="w-full px-4 py-2 rounded-full text-gray-800 border-none focus:ring-2 focus:ring-blue-400 focus:outline-none">
                     <div class="absolute right-3 top-2.5 text-gray-400">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
                 </div>
 
-                <!-- Generation Filter -->
-                <select id="genFilter" class="w-full sm:w-48 px-4 py-2 rounded-full text-gray-800 border-none focus:ring-2 focus:ring-blue-400 focus:outline-none cursor-pointer">
-                    <option value="all">All Generations</option>
-                    <option value="1">Gen 1 (Kanto)</option>
-                    <option value="2">Gen 2 (Johto)</option>
-                    <option value="3">Gen 3 (Hoenn)</option>
-                    <option value="4">Gen 4 (Sinnoh)</option>
-                    <option value="5">Gen 5 (Unova)</option>
-                    <option value="6">Gen 6 (Kalos)</option>
-                    <option value="7">Gen 7 (Alola)</option>
-                    <option value="8">Gen 8 (Galar)</option>
-                    <option value="9">Gen 9 (Paldea)</option>
-                </select>
+                <div class="flex w-full sm:w-auto gap-2">
+                    <select id="genFilter" class="flex-1 sm:w-48 px-4 py-2 rounded-full text-gray-800 border-none focus:ring-2 focus:ring-blue-400 focus:outline-none cursor-pointer">
+                        <option value="all">All Generations</option>
+                        <option value="1">Gen 1 (Kanto)</option>
+                        <option value="2">Gen 2 (Johto)</option>
+                        <option value="3">Gen 3 (Hoenn)</option>
+                        <option value="4">Gen 4 (Sinnoh)</option>
+                        <option value="5">Gen 5 (Unova)</option>
+                        <option value="6">Gen 6 (Kalos)</option>
+                        <option value="7">Gen 7 (Alola)</option>
+                        <option value="8">Gen 8 (Galar)</option>
+                        <option value="9">Gen 9 (Paldea)</option>
+                    </select>
+                    
+                    <button id="clearBtn" class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-full text-sm font-semibold transition-colors" title="Clear Filters">
+                        Clear
+                    </button>
+                </div>
             </div>
         </div>
     </header>
@@ -119,140 +75,156 @@
     <div class="bg-white shadow-sm border-b">
         <div class="container mx-auto px-4 py-2 text-sm text-gray-500 flex justify-between items-center">
             <span id="countDisplay">Loading Pokémon...</span>
-            <span class="text-xs">Data sourced from PokeAPI</span>
+            <span class="text-xs">Data: PokeAPI</span>
         </div>
     </div>
 
-    <!-- Main Content Grid -->
+    <!-- Main Grid -->
     <main class="container mx-auto px-4 py-6">
         <div id="loading" class="flex flex-col justify-center items-center py-20">
             <div class="spinner mb-4"></div>
             <p class="text-gray-500 text-lg">Catching them all...</p>
         </div>
 
-        <div id="pokedexGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6 hidden">
-            <!-- Pokemon Cards will be injected here -->
-        </div>
+        <div id="pokedexGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6 hidden"></div>
         
         <div id="noResults" class="hidden text-center py-20">
-            <p class="text-xl text-gray-500">No Pokémon found matching your search.</p>
+            <p class="text-xl text-gray-500">No Pokémon found.</p>
         </div>
     </main>
 
-    <!-- Modal for details (simple implementation) -->
-    <div id="modal" class="fixed inset-0 bg-black bg-opacity-75 hidden z-[100] flex justify-center items-center p-4 backdrop-blur-sm transition-opacity duration-300">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden transform scale-95 transition-transform duration-300" id="modalContent">
-            <div class="relative bg-gray-100 p-8 flex justify-center">
-                <button id="closeModal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 focus:outline-none">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-                <img id="modalImg" src="" alt="Pokemon" class="w-48 h-48 object-contain drop-shadow-xl">
-            </div>
-            <div class="p-6">
-                <div class="flex justify-between items-baseline mb-2">
-                    <h2 id="modalName" class="text-2xl font-bold text-gray-800 capitalize">Bulbasaur</h2>
-                    <span id="modalId" class="text-lg font-mono text-gray-500">#0001</span>
+    <!-- Modal -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-80 hidden z-[100] flex justify-center items-center p-4 backdrop-blur-sm transition-opacity duration-300 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden transform scale-95 transition-transform duration-300 my-auto relative" id="modalContent">
+            
+            <button id="closeModal" class="absolute top-4 right-4 z-10 text-gray-500 hover:text-gray-800 bg-white rounded-full p-1 opacity-70 hover:opacity-100">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <!-- Modal Header (Main Info) -->
+            <div class="bg-gradient-to-br from-gray-50 to-gray-200 p-8 flex flex-col md:flex-row items-center md:items-start gap-8 border-b border-gray-200">
+                <div class="relative group">
+                    <div class="absolute inset-0 bg-white rounded-full filter blur-xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
+                    <img id="modalImg" src="" alt="Pokemon" class="relative w-48 h-48 object-contain drop-shadow-lg z-10">
                 </div>
-                <div class="flex items-center gap-2 mb-4">
-                     <span class="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-xs font-semibold">Gen <span id="modalGen">1</span></span>
-                     <a id="wikiLink" href="#" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm flex items-center gap-1">
-                        Bulbapedia
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                     </a>
+                
+                <div class="text-center md:text-left flex-1">
+                    <div class="flex flex-col md:flex-row items-center md:items-baseline gap-3 mb-2">
+                        <h2 id="modalName" class="text-3xl font-bold text-gray-800 capitalize leading-tight"></h2>
+                        <span id="modalId" class="text-xl font-mono text-gray-500"></span>
+                    </div>
+                    
+                    <div class="flex flex-wrap justify-center md:justify-start gap-2 mb-4">
+                        <span class="px-3 py-1 bg-gray-800 text-white rounded-full text-xs font-semibold">Gen <span id="modalGen"></span></span>
+                    </div>
+
+                    <p class="text-gray-600 text-sm mb-4">
+                        Data provided by PokeAPI. High-resolution official artwork.
+                    </p>
+
+                    <a id="wikiLink" href="#" target="_blank" class="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium">
+                        View on Bulbapedia
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Evolution Section -->
+            <div class="p-6 bg-white">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                    Evolution Path
+                </h3>
+                
+                <div id="evoLoading" class="hidden py-4 text-center">
+                    <div class="spinner mx-auto w-8 h-8 border-2"></div>
+                </div>
+
+                <!-- Evolution Chain Container -->
+                <div id="evoContainer" class="flex flex-row flex-wrap items-center justify-center gap-1 sm:gap-4 min-h-[100px]">
+                    <!-- Injected via JS -->
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Constants
-        const TOTAL_POKEMON = 1025; // As of Gen 9
+        const TOTAL_POKEMON = 1025; 
         const API_URL = `https://pokeapi.co/api/v2/pokemon?limit=${TOTAL_POKEMON}`;
         
-        // Generation Ranges (National Dex IDs)
+        // Gen ranges
         const GENERATIONS = {
-            1: { start: 1, end: 151, name: "Kanto" },
-            2: { start: 152, end: 251, name: "Johto" },
-            3: { start: 252, end: 386, name: "Hoenn" },
-            4: { start: 387, end: 493, name: "Sinnoh" },
-            5: { start: 494, end: 649, name: "Unova" },
-            6: { start: 650, end: 721, name: "Kalos" },
-            7: { start: 722, end: 809, name: "Alola" },
-            8: { start: 810, end: 905, name: "Galar" },
-            9: { start: 906, end: 1025, name: "Paldea" }
+            1: { start: 1, end: 151 },
+            2: { start: 152, end: 251 },
+            3: { start: 252, end: 386 },
+            4: { start: 387, end: 493 },
+            5: { start: 494, end: 649 },
+            6: { start: 650, end: 721 },
+            7: { start: 722, end: 809 },
+            8: { start: 810, end: 905 },
+            9: { start: 906, end: 1025 }
         };
 
-        // State
         let allPokemon = [];
         
-        // DOM Elements
+        // Elements
         const grid = document.getElementById('pokedexGrid');
         const loading = document.getElementById('loading');
         const countDisplay = document.getElementById('countDisplay');
         const genFilter = document.getElementById('genFilter');
         const searchInput = document.getElementById('searchInput');
+        const clearBtn = document.getElementById('clearBtn');
         const noResults = document.getElementById('noResults');
         const modal = document.getElementById('modal');
         const modalContent = document.getElementById('modalContent');
         const closeModal = document.getElementById('closeModal');
+        const evoContainer = document.getElementById('evoContainer');
+        const evoLoading = document.getElementById('evoLoading');
 
-        // Initialize
         init();
 
         async function init() {
             try {
-                // Fetch basic list of all Pokemon
                 const response = await fetch(API_URL);
                 const data = await response.json();
                 
-                // Process data into a usable format
                 allPokemon = data.results.map((p, index) => {
                     const id = index + 1;
                     return {
                         id: id,
                         name: p.name,
-                        // High quality official artwork
                         image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
                         generation: getGeneration(id),
                         displayId: formatId(id)
                     };
                 });
 
-                // Initial Render
                 renderPokemon(allPokemon);
                 loading.classList.add('hidden');
                 grid.classList.remove('hidden');
-
             } catch (error) {
                 console.error("Failed to fetch Pokemon:", error);
-                loading.innerHTML = `<p class="text-red-500">Error loading Pokédex. Please try refreshing.</p>`;
+                loading.innerHTML = `<p class="text-red-500">Error loading data.</p>`;
             }
         }
 
-        // Helper: Determine Generation from ID
         function getGeneration(id) {
             for (const [gen, range] of Object.entries(GENERATIONS)) {
-                if (id >= range.start && id <= range.end) {
-                    return parseInt(gen);
-                }
+                if (id >= range.start && id <= range.end) return parseInt(gen);
             }
-            return 9; // Fallback
+            return 9;
         }
 
-        // Helper: Format ID to #0000
         function formatId(id) {
             return '#' + id.toString().padStart(4, '0');
         }
 
-        // Helper: Format Name (capitalize)
         function formatName(name) {
             return name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
         }
 
-        // Render Function
         function renderPokemon(pokemonList) {
             grid.innerHTML = '';
-            
             if (pokemonList.length === 0) {
                 noResults.classList.remove('hidden');
                 countDisplay.textContent = `Showing 0 Pokémon`;
@@ -261,75 +233,191 @@
             
             noResults.classList.add('hidden');
             countDisplay.textContent = `Showing ${pokemonList.length} Pokémon`;
+            
+            // Limit initial render to prevent UI freeze on "All", then render rest
+            const batchSize = 50;
 
-            // Use a DocumentFragment for better performance
             const fragment = document.createDocumentFragment();
 
-            pokemonList.forEach(poke => {
-                const card = document.createElement('div');
-                card.className = 'poke-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer flex flex-col';
-                card.onclick = () => openModal(poke);
-
-                card.innerHTML = `
-                    <div class="bg-gray-50 p-6 flex items-center justify-center relative">
-                        <span class="absolute top-2 left-3 text-xs font-bold text-gray-400 font-mono tracking-wider">${poke.displayId}</span>
-                        <img 
-                            src="${poke.image}" 
-                            alt="${poke.name}" 
-                            loading="lazy"
-                            class="w-32 h-32 object-contain transform transition-transform duration-300 hover:scale-110"
-                            onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${poke.id}.png'"
-                        >
-                    </div>
-                    <div class="p-3 text-center">
-                        <h3 class="text-gray-800 font-semibold text-sm sm:text-base truncate">${formatName(poke.name)}</h3>
-                    </div>
-                `;
-                fragment.appendChild(card);
+            pokemonList.slice(0, batchSize).forEach(poke => {
+                fragment.appendChild(createCard(poke));
             });
-
             grid.appendChild(fragment);
+
+            // If there are more, render them in a timeout (poor man's virtual scroll)
+            if (pokemonList.length > batchSize) {
+                setTimeout(() => {
+                    const remainingFragment = document.createDocumentFragment();
+                    pokemonList.slice(batchSize).forEach(poke => {
+                        remainingFragment.appendChild(createCard(poke));
+                    });
+                    grid.appendChild(remainingFragment);
+                }, 100);
+            }
         }
 
-        // Filter Logic
+        function createCard(poke) {
+            const card = document.createElement('div');
+            card.className = 'poke-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer flex flex-col';
+            card.onclick = () => openModal(poke);
+
+            card.innerHTML = `
+                <div class="bg-gray-50 p-6 flex items-center justify-center relative">
+                    <span class="absolute top-2 left-3 text-xs font-bold text-gray-400 font-mono tracking-wider">${poke.displayId}</span>
+                    <img 
+                        src="${poke.image}" 
+                        alt="${poke.name}" 
+                        loading="lazy"
+                        class="w-32 h-32 object-contain transform transition-transform duration-300 hover:scale-110"
+                        onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${poke.id}.png'"
+                    >
+                </div>
+                <div class="p-3 text-center">
+                    <h3 class="text-gray-800 font-semibold text-sm sm:text-base truncate">${formatName(poke.name)}</h3>
+                </div>
+            `;
+            return card;
+        }
+
         function filterPokemon() {
             const genValue = genFilter.value;
             const searchValue = searchInput.value.toLowerCase();
 
             const filtered = allPokemon.filter(poke => {
-                // Check Generation
                 const matchesGen = genValue === 'all' || poke.generation === parseInt(genValue);
-                
-                // Check Search (Name or ID)
                 const matchesSearch = poke.name.includes(searchValue) || poke.id.toString() === searchValue;
-
                 return matchesGen && matchesSearch;
             });
 
             renderPokemon(filtered);
         }
 
-        // Event Listeners
+        function clearFilters() {
+            searchInput.value = '';
+            genFilter.value = 'all';
+            filterPokemon();
+        }
+
         genFilter.addEventListener('change', filterPokemon);
         searchInput.addEventListener('input', filterPokemon);
+        clearBtn.addEventListener('click', clearFilters);
 
-        // Modal Logic
-        function openModal(poke) {
+        // --- MODAL & EVOLUTION LOGIC ---
+
+        async function openModal(poke) {
+            // Set basic info
             document.getElementById('modalImg').src = poke.image;
             document.getElementById('modalName').textContent = formatName(poke.name);
             document.getElementById('modalId').textContent = poke.displayId;
             document.getElementById('modalGen').textContent = poke.generation;
             
-            // Link to Bulbapedia
             const wikiUrl = `https://bulbapedia.bulbagarden.net/wiki/${formatName(poke.name).replace(' ', '_')}_(Pok%C3%A9mon)`;
             document.getElementById('wikiLink').href = wikiUrl;
 
+            // Show Modal
             modal.classList.remove('hidden');
-            // Small timeout to allow display:block to apply before opacity transition
             setTimeout(() => {
                 modalContent.classList.remove('scale-95');
                 modalContent.classList.add('scale-100');
             }, 10);
+
+            // Fetch Evolution
+            evoContainer.innerHTML = '';
+            evoLoading.classList.remove('hidden');
+            
+            try {
+                // 1. Get Species Data to find Evolution Chain URL
+                const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${poke.id}/`);
+                if(!speciesRes.ok) throw new Error('Species not found');
+                const speciesData = await speciesRes.json();
+                
+                const evoChainUrl = speciesData.evolution_chain.url;
+
+                // 2. Get Evolution Chain
+                const evoRes = await fetch(evoChainUrl);
+                const evoData = await evoRes.json();
+
+                // 3. Render Chain
+                evoLoading.classList.add('hidden');
+                renderEvolutionChain(evoData.chain);
+
+            } catch (err) {
+                console.error(err);
+                evoLoading.classList.add('hidden');
+                evoContainer.innerHTML = '<p class="text-gray-400 text-sm italic">Evolution data unavailable.</p>';
+            }
+        }
+
+        function renderEvolutionChain(chainNode) {
+            const queue = [{ node: chainNode, depth: 0 }];
+            
+            // Collect all into tiers: { 0: [Node], 1: [Node, Node], 2: [Node] }
+            const tiers = {};
+            const processNode = (node, depth) => {
+                if (!tiers[depth]) tiers[depth] = [];
+                tiers[depth].push(node);
+                if (node.evolves_to) {
+                    node.evolves_to.forEach(child => processNode(child, depth + 1));
+                }
+            };
+            processNode(chainNode, 0);
+
+            evoContainer.innerHTML = ''; // Clear
+
+            // Render Tiers
+            Object.keys(tiers).forEach((depth, idx) => {
+                const tierNodes = tiers[depth];
+                const depthInt = parseInt(depth);
+
+                // Add Arrow if not first tier
+                if (depthInt > 0) {
+                     const arrow = document.createElement('div');
+                     arrow.className = "text-red-300 mx-0.5 sm:mx-2";
+                     // Fixed right pointing arrow
+                     arrow.innerHTML = `<svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>`;
+                     evoContainer.appendChild(arrow);
+                }
+
+                // Tier Container
+                const tierDiv = document.createElement('div');
+                tierDiv.className = "flex flex-wrap justify-center gap-2";
+                
+                // Keep it tight on mobile to allow 3 stages in one row
+                // No width constraint, just flexible
+                
+                tierNodes.forEach(node => {
+                    const el = createEvoNode(node);
+                    tierDiv.appendChild(el);
+                });
+                
+                evoContainer.appendChild(tierDiv);
+            });
+        }
+
+        function createEvoNode(node) {
+            // 1. Extract ID from URL to get Image
+            const urlParts = node.species.url.split('/');
+            const id = urlParts[urlParts.length - 2];
+            const imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+            const name = formatName(node.species.name);
+
+            // Create Element for this Pokemon
+            const pokeDiv = document.createElement('div');
+            pokeDiv.className = "flex flex-col items-center p-1 sm:p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group";
+            pokeDiv.onclick = (e) => {
+                e.stopPropagation(); 
+                // Optional: Could trigger loading this pokemon in modal here
+            };
+
+            // Responsive sizing: smaller on mobile to fit 3 in a row
+            pokeDiv.innerHTML = `
+                <div class="w-14 h-14 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-1 sm:mb-2 shadow-sm border border-gray-200 group-hover:border-red-200">
+                        <img src="${imgUrl}" alt="${name}" class="w-10 h-10 sm:w-16 sm:h-16 object-contain">
+                </div>
+                <span class="text-[10px] sm:text-xs font-bold text-gray-700 text-center leading-tight max-w-[60px] sm:max-w-none truncate">${name}</span>
+            `;
+            
+            return pokeDiv;
         }
 
         function closeModalFunc() {
@@ -337,6 +425,7 @@
             modalContent.classList.add('scale-95');
             setTimeout(() => {
                 modal.classList.add('hidden');
+                document.getElementById('evoContainer').innerHTML = ''; // Clean up
             }, 200);
         }
 
@@ -344,15 +433,12 @@
         modal.addEventListener('click', (e) => {
             if (e.target === modal) closeModalFunc();
         });
-        
-        // Escape key to close modal
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-                closeModalFunc();
-            }
+            if (e.key === 'Escape') closeModalFunc();
         });
 
     </script>
 </body>
 </html>
+
 
