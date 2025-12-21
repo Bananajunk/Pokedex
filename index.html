@@ -2,8 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Living Pokédex & Smart Voice</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Living Pokédex</title>
+    
+    <!-- SEO & Social Sharing -->
+    <meta name="description" content="A Living Pokédex with AI Voice Search and Evolution Paths.">
+    <meta property="og:title" content="Living Pokédex">
+    <meta property="og:description" content="Interactive Pokédex with voice search powered by Gemini.">
+    <meta property="og:type" content="website">
+    
+    <!-- App Icon (Poké Ball) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23f00%22 stroke=%22%23333%22 stroke-width=%225%22/><path d=%22M5,50 L95,50%22 stroke=%22%23333%22 stroke-width=%2210%22/><circle cx=%2250%22 cy=%2250%22 r=%2215%22 fill=%22%23fff%22 stroke=%22%23333%22 stroke-width=%225%22/><path d=%22M5,50 A45,45 0 0,0 95,50%22 fill=%22%23fff%22/></svg>">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom scrollbar */
@@ -27,54 +37,69 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Microphone Pulse Animation */
-        .mic-listening {
+        /* AI Mic Animation (FAB) */
+        .ai-listening {
+            animation: pulse-blue 1.5s infinite;
+            background-color: #3b82f6 !important; /* blue-500 */
+            border-color: #60a5fa !important;
+        }
+        .ai-processing {
+            animation: pulse-purple 1.5s infinite;
+            background-color: #9333ea !important; /* purple-600 */
+        }
+        .browser-listening {
             animation: pulse-red 1.5s infinite;
-            background-color: #fee2e2; /* red-100 */
-            color: #dc2626; /* red-600 */
-            border-color: #ef4444;
+            background-color: #ef4444 !important; /* red-500 */
+        }
+
+        @keyframes pulse-blue {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        @keyframes pulse-purple {
+            0% { box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(147, 51, 234, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(147, 51, 234, 0); }
         }
         @keyframes pulse-red {
             0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
             100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen font-sans">
+<body class="bg-gray-100 min-h-screen font-sans flex flex-col relative">
 
     <!-- Header -->
-    <header class="bg-red-600 text-white sticky top-0 z-50 shadow-md">
+    <header class="bg-red-600 text-white sticky top-0 z-40 shadow-md">
         <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <!-- Logo -->
-            <div class="flex items-center gap-2 cursor-pointer w-full md:w-auto justify-between md:justify-start">
-                <div class="flex items-center gap-2" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+            
+            <!-- Logo area -->
+            <div class="flex items-center justify-between w-full md:w-auto">
+                <div class="flex items-center gap-2 cursor-pointer select-none" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
                     <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 2a8 8 0 0 1 7.93 7h-4.09a4 4 0 0 0-7.68 0H4.07A8 8 0 0 1 12 4zm0 16a8 8 0 0 1-7.93-7h4.09a4 4 0 0 0 7.68 0h4.07A8 8 0 0 1 12 20z"/>
                         <circle cx="12" cy="12" r="2"/>
                     </svg>
                     <h1 class="text-2xl font-bold tracking-tight">Living Pokédex</h1>
                 </div>
-                <!-- Clear Button (Mobile Only) -->
-                 <button id="mobileClearBtn" class="md:hidden text-white bg-red-700 px-3 py-1 rounded-full text-xs font-semibold">Clear</button>
+                
+                <!-- Settings Cog (Mobile) -->
+                <button onclick="toggleSettings()" class="md:hidden text-white opacity-80 hover:opacity-100 p-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </button>
             </div>
 
             <!-- Controls -->
             <div class="flex flex-col sm:flex-row w-full md:w-auto gap-3 items-center">
                 
-                <!-- Search Bar with Mic -->
+                <!-- Search Bar -->
                 <div class="relative w-full sm:w-72">
-                    <input type="text" id="searchInput" placeholder="Search name or number..." class="w-full pl-4 pr-12 py-2 rounded-full text-gray-800 border-none focus:ring-2 focus:ring-blue-400 focus:outline-none shadow-sm">
-                    
-                    <!-- Mic Button -->
-                    <button id="micBtn" class="absolute right-1 top-1 bottom-1 p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-gray-100 transition-colors focus:outline-none" title="Speak to search">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
-                        </svg>
-                    </button>
+                    <input type="text" id="searchInput" placeholder="Search name or number..." class="w-full px-4 py-2 rounded-full text-gray-800 border-none focus:ring-2 focus:ring-blue-400 focus:outline-none shadow-sm">
                 </div>
 
-                <div class="flex w-full sm:w-auto gap-2">
+                <div class="flex w-full sm:w-auto gap-2 items-center">
                     <select id="genFilter" class="flex-1 sm:w-48 px-4 py-2 rounded-full text-gray-800 border-none focus:ring-2 focus:ring-blue-400 focus:outline-none cursor-pointer shadow-sm">
                         <option value="all">All Generations</option>
                         <option value="1">Gen 1 (Kanto)</option>
@@ -88,8 +113,13 @@
                         <option value="9">Gen 9 (Paldea)</option>
                     </select>
                     
-                    <button id="desktopClearBtn" class="hidden md:block bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-full text-sm font-semibold transition-colors shadow-sm" title="Clear Filters">
+                    <button id="clearBtn" class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-full text-sm font-semibold transition-colors shadow-sm" title="Clear Filters">
                         Clear
+                    </button>
+
+                    <!-- Settings Cog (Desktop) -->
+                    <button onclick="toggleSettings()" class="hidden md:block text-white opacity-80 hover:opacity-100 ml-1">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     </button>
                 </div>
             </div>
@@ -100,12 +130,12 @@
     <div class="bg-white shadow-sm border-b">
         <div class="container mx-auto px-4 py-2 text-sm text-gray-500 flex justify-between items-center">
             <span id="countDisplay">Loading Pokémon...</span>
-            <div id="statusMsg" class="text-xs text-gray-500 font-medium italic">Data: PokeAPI</div>
+            <div id="statusMsg" onclick="showFullError()" class="text-xs text-gray-500 font-medium italic transition-all duration-200">Data: PokeAPI</div>
         </div>
     </div>
 
     <!-- Main Grid -->
-    <main class="container mx-auto px-4 py-6">
+    <main class="container mx-auto px-4 py-6 flex-grow">
         <div id="loading" class="flex flex-col justify-center items-center py-20">
             <div class="spinner mb-4"></div>
             <p class="text-gray-500 text-lg">Catching them all...</p>
@@ -118,7 +148,22 @@
         </div>
     </main>
 
-    <!-- Modal -->
+    <!-- Footer -->
+    <footer class="bg-gray-100 py-6 border-t border-gray-200 mt-auto pb-24">
+        <div class="container mx-auto px-4 text-center text-gray-400 text-xs">
+            <p>&copy; 2025 Living Pokédex. Data via <a href="https://pokeapi.co/" target="_blank" class="underline hover:text-gray-600">PokeAPI</a>.</p>
+            <p class="mt-1">Pokémon images & names &copy; Nintendo/Game Freak.</p>
+        </div>
+    </footer>
+
+    <!-- Floating Action Button (FAB) for Voice -->
+    <button id="fabMic" class="fixed bottom-6 right-6 w-16 h-16 bg-red-600 text-white rounded-full shadow-lg flex items-center justify-center z-[90] transition-all hover:bg-red-700 active:scale-95 focus:outline-none" title="Speak to Search">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+        </svg>
+    </button>
+
+    <!-- Pokemon Detail Modal -->
     <div id="modal" class="fixed inset-0 bg-black bg-opacity-80 hidden z-[100] flex justify-center items-center p-4 backdrop-blur-sm transition-opacity duration-300 overflow-y-auto">
         <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden transform scale-95 transition-transform duration-300 my-auto relative" id="modalContent">
             
@@ -126,7 +171,7 @@
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
 
-            <!-- Modal Header (Main Info) -->
+            <!-- Modal Header -->
             <div class="bg-gradient-to-br from-gray-50 to-gray-200 p-8 flex flex-col md:flex-row items-center md:items-start gap-8 border-b border-gray-200">
                 <div class="relative group">
                     <div class="absolute inset-0 bg-white rounded-full filter blur-xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
@@ -142,11 +187,7 @@
                     <div class="flex flex-wrap justify-center md:justify-start gap-2 mb-4">
                         <span class="px-3 py-1 bg-gray-800 text-white rounded-full text-xs font-semibold">Gen <span id="modalGen"></span></span>
                     </div>
-
-                    <p class="text-gray-600 text-sm mb-4">
-                        Data provided by PokeAPI. High-resolution official artwork.
-                    </p>
-
+                    <p class="text-gray-600 text-sm mb-4">Data provided by PokeAPI. High-resolution official artwork.</p>
                     <a id="wikiLink" href="#" target="_blank" class="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium">
                         View on Bulbapedia
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
@@ -156,23 +197,81 @@
 
             <!-- Evolution Section -->
             <div class="p-6 bg-white">
-                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-                    Evolution Path
-                </h3>
-                
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">Evolution Path</h3>
                 <div id="evoLoading" class="hidden py-4 text-center">
                     <div class="spinner mx-auto w-8 h-8 border-2"></div>
                 </div>
+                <div id="evoContainer" class="flex flex-row flex-wrap items-center justify-center gap-1 sm:gap-4 min-h-[100px]"></div>
+            </div>
+        </div>
+    </div>
 
-                <div id="evoContainer" class="flex flex-row flex-wrap items-center justify-center gap-1 sm:gap-4 min-h-[100px]">
-                    <!-- Injected via JS -->
+    <!-- Error Detail Modal -->
+    <div id="errorModal" class="fixed inset-0 bg-black bg-opacity-80 hidden z-[110] flex justify-center items-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Error Details</h3>
+            <div id="errorDetailText" class="text-sm text-left bg-gray-100 p-3 rounded font-mono overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto mb-4 border border-gray-200">
+                No error details available.
+            </div>
+            <button onclick="document.getElementById('errorModal').classList.add('hidden')" class="w-full px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900">Close</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-80 hidden z-[110] flex justify-center items-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Voice Search Settings
+            </h2>
+            
+            <!-- Instructions -->
+            <div class="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800">
+                <p class="font-bold mb-2">How to get a Free API Key:</p>
+                <ol class="list-decimal ml-4 space-y-1">
+                    <li>Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-bold hover:text-blue-900">Google AI Studio</a>.</li>
+                    <li>Click <b>"Get API Key"</b>.</li>
+                    <li>Click <b>"Create API key in new project"</b>.</li>
+                    <li>Copy the key and paste it below.</li>
+                </ol>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">API Key</label>
+                <input type="password" id="apiKeyInput" placeholder="Paste your key here (AIzaSy...)" class="w-full px-4 py-2 rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none mb-3">
+                
+                <div class="flex justify-between items-center mb-1">
+                    <label class="block text-sm font-semibold text-gray-700">AI Model</label>
+                    <button onclick="fetchAvailableModels()" id="fetchModelsBtn" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 font-semibold">Load Available Models</button>
                 </div>
+                
+                <select id="modelSelect" class="w-full px-4 py-2 rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+                    <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest</option>
+                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Exp)</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                </select>
+                <div id="fetchStatus" class="text-xs text-gray-500 mt-1 h-4"></div>
+            </div>
+
+            <div class="flex justify-between items-center gap-3">
+                 <button onclick="resetKey()" class="text-xs text-red-500 underline hover:text-red-700">Reset Key</button>
+                 <div class="flex gap-2">
+                    <button onclick="toggleSettings()" class="px-4 py-2 text-gray-600 hover:text-gray-800">Close</button>
+                    <button onclick="saveSettings()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
+                 </div>
+            </div>
+            
+            <div class="mt-4 border-t border-gray-100 pt-2 text-center">
+                <p class="text-[10px] text-gray-400">Powered by Google Gemini</p>
             </div>
         </div>
     </div>
 
     <script>
+        // --- Constants & State ---
         const TOTAL_POKEMON = 1025; 
         const API_URL = `https://pokeapi.co/api/v2/pokemon?limit=${TOTAL_POKEMON}`;
         
@@ -189,27 +288,43 @@
         };
 
         let allPokemon = [];
-        let recognition; // Defined globally so clearFilters can access it
-        
-        // Elements
+        let browserRecognition; 
+        let mediaRecorder;
+        let audioChunks = [];
+        let GEMINI_API_KEY = localStorage.getItem('gemini_api_key') || "";
+        // DEFAULT IS NOW 1.5-FLASH-LATEST as requested
+        let GEMINI_MODEL = localStorage.getItem('gemini_model') || "gemini-1.5-flash-latest";
+        let lastErrorDetail = "";
+
+        // --- DOM Elements ---
         const grid = document.getElementById('pokedexGrid');
         const loading = document.getElementById('loading');
         const countDisplay = document.getElementById('countDisplay');
         const genFilter = document.getElementById('genFilter');
         const searchInput = document.getElementById('searchInput');
-        const desktopClearBtn = document.getElementById('desktopClearBtn');
-        const mobileClearBtn = document.getElementById('mobileClearBtn');
-        const micBtn = document.getElementById('micBtn');
-        const statusMsg = document.getElementById('statusMsg');
+        const clearBtn = document.getElementById('clearBtn');
+        // FAB Button
+        const fabMic = document.getElementById('fabMic');
         
+        const statusMsg = document.getElementById('statusMsg');
         const noResults = document.getElementById('noResults');
         const modal = document.getElementById('modal');
         const modalContent = document.getElementById('modalContent');
         const closeModal = document.getElementById('closeModal');
         const evoContainer = document.getElementById('evoContainer');
         const evoLoading = document.getElementById('evoLoading');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const modelSelect = document.getElementById('modelSelect');
+        const errorModal = document.getElementById('errorModal');
+        const errorDetailText = document.getElementById('errorDetailText');
+        const fetchStatus = document.getElementById('fetchStatus');
 
+        // --- Initialize ---
         init();
+        apiKeyInput.value = GEMINI_API_KEY; 
+        modelSelect.value = GEMINI_MODEL;
+
+        statusMsg.addEventListener('click', showFullError);
 
         async function init() {
             try {
@@ -236,138 +351,351 @@
             }
         }
 
-        // --- Voice Recognition with Fuzzy Logic ---
+        // --- Settings Logic ---
+        function toggleSettings() {
+            const el = document.getElementById('settingsModal');
+            el.classList.toggle('hidden');
+            fetchStatus.textContent = "";
+        }
+
+        async function fetchAvailableModels() {
+            const key = apiKeyInput.value.trim();
+            if (!key) {
+                fetchStatus.textContent = "Please enter API Key first.";
+                fetchStatus.className = "text-xs text-red-500 font-bold";
+                return;
+            }
+
+            fetchStatus.textContent = "Fetching models...";
+            fetchStatus.className = "text-xs text-blue-500 animate-pulse";
+
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.error) {
+                    fetchStatus.textContent = "Error: " + data.error.message;
+                    fetchStatus.className = "text-xs text-red-500";
+                    return;
+                }
+
+                if (data.models) {
+                    modelSelect.innerHTML = ""; // Clear existing
+                    let count = 0;
+                    
+                    data.models.sort((a, b) => b.name.localeCompare(a.name));
+
+                    data.models.forEach(model => {
+                        if (model.supportedGenerationMethods && model.supportedGenerationMethods.includes("generateContent")) {
+                            const value = model.name.replace("models/", "");
+                            const opt = document.createElement('option');
+                            opt.value = value;
+                            opt.textContent = model.displayName || value;
+                            modelSelect.appendChild(opt);
+                            count++;
+                        }
+                    });
+                    
+                    fetchStatus.textContent = `Success! Found ${count} models.`;
+                    fetchStatus.className = "text-xs text-green-600 font-bold";
+                    
+                    if (GEMINI_MODEL) {
+                        modelSelect.value = GEMINI_MODEL;
+                    }
+                } else {
+                    fetchStatus.textContent = "No models found for this key.";
+                    fetchStatus.className = "text-xs text-orange-500";
+                }
+
+            } catch (e) {
+                fetchStatus.textContent = "Network Error.";
+                fetchStatus.className = "text-xs text-red-500";
+            }
+        }
+
+        function saveSettings() {
+            const key = apiKeyInput.value.trim();
+            const model = modelSelect.value;
+            
+            if (!key) {
+                alert("Please enter a key or click Reset.");
+                return;
+            }
+            
+            localStorage.setItem('gemini_api_key', key);
+            localStorage.setItem('gemini_model', model);
+            
+            GEMINI_API_KEY = key;
+            GEMINI_MODEL = model;
+            
+            toggleSettings();
+            alert(`Settings Saved!\nModel: ${model}\nVoice Active.`);
+        }
+
+        function resetKey() {
+            localStorage.removeItem('gemini_api_key');
+            GEMINI_API_KEY = "";
+            apiKeyInput.value = "";
+            alert("Key cleared. Using Browser Voice.");
+        }
         
-        // Levenshtein Distance Algorithm (The "Fuzzy" Logic)
+        function showFullError() {
+            if (lastErrorDetail) {
+                errorDetailText.textContent = lastErrorDetail;
+                errorModal.classList.remove('hidden');
+            }
+        }
+
+        // --- Main Voice Handler ---
+        fabMic.addEventListener('click', () => {
+            if (GEMINI_API_KEY) {
+                handleAIVoice();
+            } else {
+                handleBrowserVoice();
+            }
+        });
+
+        // --- 1. Browser Voice Logic (Fallback) ---
+        function handleBrowserVoice() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Browser voice not supported. Please use Chrome or add an API Key.");
+                return;
+            }
+
+            // Fix: Check if already listening to toggle off
+            if (fabMic.classList.contains('browser-listening')) {
+                if (browserRecognition) browserRecognition.stop();
+                return;
+            }
+
+            if (!browserRecognition) {
+                browserRecognition = new SpeechRecognition();
+                browserRecognition.lang = 'en-US';
+                browserRecognition.interimResults = false;
+                
+                browserRecognition.onstart = () => {
+                    fabMic.classList.add('browser-listening');
+                    statusMsg.textContent = "Listening (Basic)...";
+                    statusMsg.className = "text-xs font-bold text-red-600 animate-pulse";
+                };
+
+                browserRecognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    performFuzzySearch(transcript);
+                };
+
+                browserRecognition.onend = () => resetMicState();
+                
+                browserRecognition.onerror = (event) => {
+                    if (event.error === 'aborted') return;
+                    statusMsg.textContent = "Error. Try again.";
+                    resetMicState();
+                };
+            }
+
+            try { browserRecognition.start(); } catch(e) { }
+        }
+
+        // --- 2. AI Voice Logic (Gemini) ---
+        async function handleAIVoice() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("Microphone access denied or not supported.");
+                return;
+            }
+
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                mediaRecorder.stop();
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstart = () => {
+                    fabMic.classList.add('ai-listening');
+                    statusMsg.textContent = "Listening (AI)... Tap mic to stop.";
+                    statusMsg.className = "text-xs font-bold text-blue-600 animate-pulse";
+                };
+
+                mediaRecorder.onstop = async () => {
+                    fabMic.classList.remove('ai-listening');
+                    fabMic.classList.add('ai-processing');
+                    statusMsg.textContent = "AI Thinking...";
+                    statusMsg.className = "text-xs font-bold text-purple-600 animate-pulse";
+
+                    const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+                    
+                    if (audioBlob.size < 500) {
+                        statusMsg.textContent = "Audio too short/empty. Try again.";
+                        statusMsg.className = "text-xs text-red-500 font-bold";
+                        resetMicState();
+                        stream.getTracks().forEach(track => track.stop());
+                        return;
+                    }
+
+                    await sendAudioToGemini(audioBlob);
+                    
+                    fabMic.classList.remove('ai-processing');
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+
+                setTimeout(() => {
+                    if (mediaRecorder && mediaRecorder.state === "recording") {
+                        mediaRecorder.stop();
+                    }
+                }, 5000);
+
+            } catch (err) {
+                statusMsg.textContent = "Mic Error. Check permissions.";
+                resetMicState();
+            }
+        }
+
+        async function sendAudioToGemini(blob) {
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = async () => {
+                const base64data = reader.result.split(',')[1];
+                
+                let mimeType = reader.result.split(',')[0].match(/:(.*?);/)[1];
+                if (mimeType.includes(';')) {
+                    mimeType = mimeType.split(';')[0];
+                }
+
+                const prompt = `
+                    You are a Pokedex. Listen to this audio. The user is saying a Pokémon name.
+                    1. Identify the Pokemon name (e.g. "Charmander", "Pikachu").
+                    2. If they describe it (e.g. "fire lizard"), identify the most likely Pokemon.
+                    3. Return ONLY valid JSON: {"name": "Pikachu"}.
+                    4. If you cannot hear anything or it is not a Pokemon, return {"name": "null", "reason": "unclear"}.
+                `;
+
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+                
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [
+                                    { text: prompt },
+                                    { inlineData: { mimeType: mimeType, data: base64data } }
+                                ]
+                            }]
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        lastErrorDetail = JSON.stringify(data.error, null, 2);
+                        let shortMsg = "Error: " + data.error.message;
+                        if (shortMsg.length > 25) shortMsg = shortMsg.substring(0, 25) + "...";
+                        
+                        statusMsg.innerHTML = `<span class="block">${shortMsg}</span><span class="block text-xs font-normal opacity-75">(Tap for Details)</span>`;
+                        statusMsg.className = "text-sm text-red-700 font-bold cursor-pointer bg-red-100 p-2 rounded shadow-sm hover:bg-red-200 text-center select-none w-full border border-red-300";
+                        return;
+                    }
+
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    let pokeName = null;
+                    let reason = "";
+                    try {
+                        const jsonStr = text.match(/\{.*\}/s)?.[0];
+                        if (jsonStr) {
+                            const parsed = JSON.parse(jsonStr);
+                            pokeName = parsed.name;
+                            reason = parsed.reason;
+                        }
+                    } catch (e) { }
+
+                    if (pokeName && pokeName !== "null") {
+                        statusMsg.textContent = `AI Heard: "${pokeName}"`;
+                        statusMsg.className = "text-xs text-green-600 font-bold";
+                        searchInput.value = pokeName;
+                        filterPokemon();
+                    } else {
+                        statusMsg.textContent = "AI didn't understand (" + (reason || "Unknown") + ")";
+                        statusMsg.className = "text-xs text-red-500 italic";
+                    }
+
+                } catch (error) {
+                    lastErrorDetail = error.message;
+                    statusMsg.innerHTML = `<span class="block">Network Error</span><span class="block text-xs font-normal opacity-75">(Tap for Details)</span>`;
+                    statusMsg.className = "text-sm text-red-700 font-bold cursor-pointer bg-red-100 p-2 rounded shadow-sm hover:bg-red-200 text-center select-none w-full border border-red-300";
+                }
+            };
+        }
+
+        // --- Shared Logic ---
+        function resetMicState() {
+            fabMic.classList.remove('browser-listening', 'ai-listening', 'ai-processing');
+            if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+            if (browserRecognition) browserRecognition.stop();
+        }
+
+        function performFuzzySearch(transcript) {
+            const target = transcript.toLowerCase().replace(/[^a-z0-9]/g, ''); 
+            let bestMatch = null;
+            let minDistance = Infinity;
+
+            for (const poke of allPokemon) {
+                const pokeName = poke.name.replace('-', '');
+                const dist = levenshtein(target, pokeName);
+                if (dist === 0) { bestMatch = poke.name; minDistance = 0; break; }
+                if (dist < minDistance) { minDistance = dist; bestMatch = poke.name; }
+            }
+            
+            const threshold = Math.max(3, Math.floor(target.length * 0.4));
+            if (minDistance <= threshold) {
+                searchInput.value = bestMatch;
+                statusMsg.textContent = `Heard "${transcript}", Found "${bestMatch}"`;
+                statusMsg.className = "text-xs text-green-600 font-bold";
+            } else {
+                searchInput.value = transcript;
+                statusMsg.textContent = `Heard "${transcript}" (No match)`;
+                statusMsg.className = "text-xs text-gray-500 italic";
+            }
+            filterPokemon();
+        }
+
         function levenshtein(a, b) {
             const matrix = [];
             for (let i = 0; i <= b.length; i++) matrix[i] = [i];
             for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
-
             for (let i = 1; i <= b.length; i++) {
                 for (let j = 1; j <= a.length; j++) {
                     if (b.charAt(i - 1) === a.charAt(j - 1)) {
                         matrix[i][j] = matrix[i - 1][j - 1];
                     } else {
-                        matrix[i][j] = Math.min(
-                            matrix[i - 1][j - 1] + 1,
-                            Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
-                        );
+                        matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1));
                     }
                 }
             }
             return matrix[b.length][a.length];
         }
 
-        // Find Closest Match
-        function findClosestPokemon(transcript) {
-            const target = transcript.toLowerCase().replace(/[^a-z0-9]/g, ''); // remove punctuation/spaces
-            let bestMatch = null;
-            let minDistance = Infinity;
-
-            for (const poke of allPokemon) {
-                const pokeName = poke.name.replace('-', ''); // normalize 'mr-mime' to 'mrmime'
-                const dist = levenshtein(target, pokeName);
-                
-                // If we find an exact match (distance 0), return immediately
-                if (dist === 0) return { name: poke.name, exact: true };
-
-                if (dist < minDistance) {
-                    minDistance = dist;
-                    bestMatch = poke.name;
-                }
-            }
-            
-            // Heuristic: If distance is relatively small compared to word length, assume it's a match
-            // Allow more wiggle room for longer words
-            const threshold = Math.max(3, Math.floor(target.length * 0.4));
-            
-            if (minDistance <= threshold) {
-                return { name: bestMatch, exact: false };
-            }
-            return null; // No good match found
-        }
-
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-        if (SpeechRecognition) {
-            recognition = new SpeechRecognition(); // Use the global variable
-            recognition.continuous = false;
-            recognition.lang = 'en-US';
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
-
-            micBtn.addEventListener('click', () => {
-                try {
-                    recognition.start();
-                    micBtn.classList.add('mic-listening');
-                    statusMsg.textContent = "Listening...";
-                    statusMsg.className = "text-xs font-bold text-red-600 animate-pulse";
-                } catch (e) {
-                    console.log("Recognition likely already started");
-                }
-            });
-
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                console.log("Heard raw:", transcript);
-                
-                // 1. Try fuzzy match
-                const match = findClosestPokemon(transcript);
-
-                if (match) {
-                    searchInput.value = match.name;
-                    statusMsg.textContent = match.exact 
-                        ? `Heard: "${transcript}"` 
-                        : `Heard "${transcript}", searching "${match.name}"`;
-                    statusMsg.className = "text-xs text-green-600 font-bold";
-                } else {
-                    // Fallback to raw text if no Pokemon sounds like it
-                    const cleanText = transcript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-                    searchInput.value = cleanText;
-                    statusMsg.textContent = `Heard: "${cleanText}" (No Pokémon match)`;
-                    statusMsg.className = "text-xs text-gray-500 italic";
-                }
-                
-                filterPokemon();
-            };
-
-            recognition.onspeechend = () => {
-                recognition.stop();
-                micBtn.classList.remove('mic-listening');
-            };
-
-            recognition.onerror = (event) => {
-                micBtn.classList.remove('mic-listening');
-                // Don't show error if aborted by user
-                if (event.error !== 'aborted') {
-                    statusMsg.textContent = "Voice error. Try again.";
-                    statusMsg.className = "text-xs text-red-500 font-bold";
-                }
-            };
-        } else {
-            micBtn.style.display = 'none'; // Hide if not supported
-            console.log("Web Speech API not supported in this browser");
-        }
-
-
         // --- Standard Logic ---
-
         function getGeneration(id) {
-            for (const [gen, range] of Object.entries(GENERATIONS)) {
-                if (id >= range.start && id <= range.end) return parseInt(gen);
-            }
+            for (const [gen, range] of Object.entries(GENERATIONS)) if (id >= range.start && id <= range.end) return parseInt(gen);
             return 9;
         }
-
-        function formatId(id) {
-            return '#' + id.toString().padStart(4, '0');
-        }
-
-        function formatName(name) {
-            return name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-        }
+        function formatId(id) { return '#' + id.toString().padStart(4, '0'); }
+        function formatName(name) { return name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '); }
 
         function renderPokemon(pokemonList) {
             grid.innerHTML = '';
@@ -376,25 +704,18 @@
                 countDisplay.textContent = `Showing 0 Pokémon`;
                 return;
             }
-            
             noResults.classList.add('hidden');
             countDisplay.textContent = `Showing ${pokemonList.length} Pokémon`;
             
             const batchSize = 50;
             const fragment = document.createDocumentFragment();
-
-            pokemonList.slice(0, batchSize).forEach(poke => {
-                fragment.appendChild(createCard(poke));
-            });
+            pokemonList.slice(0, batchSize).forEach(poke => fragment.appendChild(createCard(poke)));
             grid.appendChild(fragment);
-
             if (pokemonList.length > batchSize) {
                 setTimeout(() => {
-                    const remainingFragment = document.createDocumentFragment();
-                    pokemonList.slice(batchSize).forEach(poke => {
-                        remainingFragment.appendChild(createCard(poke));
-                    });
-                    grid.appendChild(remainingFragment);
+                    const remaining = document.createDocumentFragment();
+                    pokemonList.slice(batchSize).forEach(poke => remaining.appendChild(createCard(poke)));
+                    grid.appendChild(remaining);
                 }, 100);
             }
         }
@@ -403,21 +724,12 @@
             const card = document.createElement('div');
             card.className = 'poke-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer flex flex-col';
             card.onclick = () => openModal(poke);
-
             card.innerHTML = `
                 <div class="bg-gray-50 p-6 flex items-center justify-center relative">
                     <span class="absolute top-2 left-3 text-xs font-bold text-gray-400 font-mono tracking-wider">${poke.displayId}</span>
-                    <img 
-                        src="${poke.image}" 
-                        alt="${poke.name}" 
-                        loading="lazy"
-                        class="w-32 h-32 object-contain transform transition-transform duration-300 hover:scale-110"
-                        onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${poke.id}.png'"
-                    >
+                    <img src="${poke.image}" alt="${poke.name}" loading="lazy" class="w-32 h-32 object-contain transform transition-transform duration-300 hover:scale-110" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${poke.id}.png'">
                 </div>
-                <div class="p-3 text-center">
-                    <h3 class="text-gray-800 font-semibold text-sm sm:text-base truncate">${formatName(poke.name)}</h3>
-                </div>
+                <div class="p-3 text-center"><h3 class="text-gray-800 font-semibold text-sm sm:text-base truncate">${formatName(poke.name)}</h3></div>
             `;
             return card;
         }
@@ -425,74 +737,48 @@
         function filterPokemon() {
             const genValue = genFilter.value;
             const searchValue = searchInput.value.toLowerCase().trim();
-
             const filtered = allPokemon.filter(poke => {
                 const matchesGen = genValue === 'all' || poke.generation === parseInt(genValue);
-                // Simple inclusion check works for "pikachu" or "bulbasaur"
-                // It handles partials too: "pika" finds Pikachu
                 const matchesSearch = poke.name.includes(searchValue) || poke.id.toString() === searchValue;
                 return matchesGen && matchesSearch;
             });
-
             renderPokemon(filtered);
         }
 
         function clearFilters() {
             searchInput.value = '';
             genFilter.value = 'all';
-            
-            // Stop voice if active
-            if (recognition) {
-                recognition.abort();
-            }
-            micBtn.classList.remove('mic-listening');
-            
+            resetMicState();
             filterPokemon();
             statusMsg.textContent = "Data: PokeAPI";
             statusMsg.className = "text-xs text-gray-500 italic";
+            statusMsg.onclick = null; // Remove onclick action when clearing
+            lastErrorDetail = ""; // Clear error
         }
 
         genFilter.addEventListener('change', filterPokemon);
         searchInput.addEventListener('input', filterPokemon);
-        desktopClearBtn.addEventListener('click', clearFilters);
-        mobileClearBtn.addEventListener('click', clearFilters);
+        clearBtn.addEventListener('click', clearFilters);
 
-        // --- MODAL & EVOLUTION LOGIC ---
-
+        // --- Modal ---
         async function openModal(poke) {
             document.getElementById('modalImg').src = poke.image;
             document.getElementById('modalName').textContent = formatName(poke.name);
             document.getElementById('modalId').textContent = poke.displayId;
             document.getElementById('modalGen').textContent = poke.generation;
-            
-            const wikiUrl = `https://bulbapedia.bulbagarden.net/wiki/${formatName(poke.name).replace(' ', '_')}_(Pok%C3%A9mon)`;
-            document.getElementById('wikiLink').href = wikiUrl;
-
+            document.getElementById('wikiLink').href = `https://bulbapedia.bulbagarden.net/wiki/${formatName(poke.name).replace(' ', '_')}_(Pok%C3%A9mon)`;
             modal.classList.remove('hidden');
-            setTimeout(() => {
-                modalContent.classList.remove('scale-95');
-                modalContent.classList.add('scale-100');
-            }, 10);
-
+            setTimeout(() => { modalContent.classList.remove('scale-95'); modalContent.classList.add('scale-100'); }, 10);
             evoContainer.innerHTML = '';
             evoLoading.classList.remove('hidden');
-            
             try {
                 const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${poke.id}/`);
-                if(!speciesRes.ok) throw new Error('Species not found');
                 const speciesData = await speciesRes.json();
-                
                 const evoRes = await fetch(speciesData.evolution_chain.url);
                 const evoData = await evoRes.json();
-
                 evoLoading.classList.add('hidden');
                 renderEvolutionChain(evoData.chain);
-
-            } catch (err) {
-                console.error(err);
-                evoLoading.classList.add('hidden');
-                evoContainer.innerHTML = '<p class="text-gray-400 text-sm italic">Evolution data unavailable.</p>';
-            }
+            } catch (err) { evoLoading.classList.add('hidden'); evoContainer.innerHTML = '<p class="text-gray-400 text-sm italic">Evolution data unavailable.</p>'; }
         }
 
         function renderEvolutionChain(chainNode) {
@@ -500,73 +786,37 @@
             const processNode = (node, depth) => {
                 if (!tiers[depth]) tiers[depth] = [];
                 tiers[depth].push(node);
-                if (node.evolves_to) {
-                    node.evolves_to.forEach(child => processNode(child, depth + 1));
-                }
+                if (node.evolves_to) node.evolves_to.forEach(child => processNode(child, depth + 1));
             };
             processNode(chainNode, 0);
-
             evoContainer.innerHTML = ''; 
-
-            Object.keys(tiers).forEach((depth, idx) => {
-                const tierNodes = tiers[depth];
+            Object.keys(tiers).forEach((depth) => {
                 const depthInt = parseInt(depth);
-
                 if (depthInt > 0) {
                      const arrow = document.createElement('div');
                      arrow.className = "text-red-300 mx-0.5 sm:mx-2";
                      arrow.innerHTML = `<svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>`;
                      evoContainer.appendChild(arrow);
                 }
-
                 const tierDiv = document.createElement('div');
                 tierDiv.className = "flex flex-wrap justify-center gap-2";
-                
-                tierNodes.forEach(node => {
-                    tierDiv.appendChild(createEvoNode(node));
-                });
-                
+                tiers[depth].forEach(node => tierDiv.appendChild(createEvoNode(node)));
                 evoContainer.appendChild(tierDiv);
             });
         }
-
         function createEvoNode(node) {
             const urlParts = node.species.url.split('/');
             const id = urlParts[urlParts.length - 2];
             const imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
             const name = formatName(node.species.name);
-
             const pokeDiv = document.createElement('div');
             pokeDiv.className = "flex flex-col items-center p-1 sm:p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group";
-            pokeDiv.onclick = (e) => {
-                e.stopPropagation(); 
-            };
-
-            pokeDiv.innerHTML = `
-                <div class="w-14 h-14 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-1 sm:mb-2 shadow-sm border border-gray-200 group-hover:border-red-200">
-                        <img src="${imgUrl}" alt="${name}" class="w-10 h-10 sm:w-16 sm:h-16 object-contain">
-                </div>
-                <span class="text-[10px] sm:text-xs font-bold text-gray-700 text-center leading-tight max-w-[60px] sm:max-w-none truncate">${name}</span>
-            `;
+            pokeDiv.innerHTML = `<div class="w-14 h-14 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-1 sm:mb-2 shadow-sm border border-gray-200 group-hover:border-red-200"><img src="${imgUrl}" class="w-10 h-10 sm:w-16 sm:h-16 object-contain"></div><span class="text-[10px] sm:text-xs font-bold text-gray-700 text-center leading-tight max-w-[60px] sm:max-w-none truncate">${name}</span>`;
             return pokeDiv;
         }
-
-        function closeModalFunc() {
-            modalContent.classList.remove('scale-100');
-            modalContent.classList.add('scale-95');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                document.getElementById('evoContainer').innerHTML = '';
-            }, 200);
-        }
-
+        function closeModalFunc() { modalContent.classList.remove('scale-100'); modalContent.classList.add('scale-95'); setTimeout(() => { modal.classList.add('hidden'); evoContainer.innerHTML = ''; }, 200); }
         closeModal.addEventListener('click', closeModalFunc);
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModalFunc();
-        });
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeModalFunc();
-        });
+        modal.addEventListener('click', (e) => { if (e.target === modal) closeModalFunc(); });
     </script>
 </body>
 </html>
