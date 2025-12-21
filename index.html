@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Living Pokédex & Evolutions</title>
+    <title>Living Pokédex & Smart Voice</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom scrollbar */
@@ -26,6 +26,19 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Microphone Pulse Animation */
+        .mic-listening {
+            animation: pulse-red 1.5s infinite;
+            background-color: #fee2e2; /* red-100 */
+            color: #dc2626; /* red-600 */
+            border-color: #ef4444;
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen font-sans">
@@ -33,24 +46,36 @@
     <!-- Header -->
     <header class="bg-red-600 text-white sticky top-0 z-50 shadow-md">
         <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-2 cursor-pointer" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
-                <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 2a8 8 0 0 1 7.93 7h-4.09a4 4 0 0 0-7.68 0H4.07A8 8 0 0 1 12 4zm0 16a8 8 0 0 1-7.93-7h4.09a4 4 0 0 0 7.68 0h4.07A8 8 0 0 1 12 20z"/>
-                    <circle cx="12" cy="12" r="2"/>
-                </svg>
-                <h1 class="text-2xl font-bold tracking-tight">Living Pokédex</h1>
+            <!-- Logo -->
+            <div class="flex items-center gap-2 cursor-pointer w-full md:w-auto justify-between md:justify-start">
+                <div class="flex items-center gap-2" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+                    <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 2a8 8 0 0 1 7.93 7h-4.09a4 4 0 0 0-7.68 0H4.07A8 8 0 0 1 12 4zm0 16a8 8 0 0 1-7.93-7h4.09a4 4 0 0 0 7.68 0h4.07A8 8 0 0 1 12 20z"/>
+                        <circle cx="12" cy="12" r="2"/>
+                    </svg>
+                    <h1 class="text-2xl font-bold tracking-tight">Living Pokédex</h1>
+                </div>
+                <!-- Clear Button (Mobile Only) -->
+                 <button id="mobileClearBtn" class="md:hidden text-white bg-red-700 px-3 py-1 rounded-full text-xs font-semibold">Clear</button>
             </div>
 
+            <!-- Controls -->
             <div class="flex flex-col sm:flex-row w-full md:w-auto gap-3 items-center">
-                <div class="relative w-full sm:w-64">
-                    <input type="text" id="searchInput" placeholder="Search name or number..." class="w-full px-4 py-2 rounded-full text-gray-800 border-none focus:ring-2 focus:ring-blue-400 focus:outline-none">
-                    <div class="absolute right-3 top-2.5 text-gray-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    </div>
+                
+                <!-- Search Bar with Mic -->
+                <div class="relative w-full sm:w-72">
+                    <input type="text" id="searchInput" placeholder="Search name or number..." class="w-full pl-4 pr-12 py-2 rounded-full text-gray-800 border-none focus:ring-2 focus:ring-blue-400 focus:outline-none shadow-sm">
+                    
+                    <!-- Mic Button -->
+                    <button id="micBtn" class="absolute right-1 top-1 bottom-1 p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-gray-100 transition-colors focus:outline-none" title="Speak to search">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                        </svg>
+                    </button>
                 </div>
 
                 <div class="flex w-full sm:w-auto gap-2">
-                    <select id="genFilter" class="flex-1 sm:w-48 px-4 py-2 rounded-full text-gray-800 border-none focus:ring-2 focus:ring-blue-400 focus:outline-none cursor-pointer">
+                    <select id="genFilter" class="flex-1 sm:w-48 px-4 py-2 rounded-full text-gray-800 border-none focus:ring-2 focus:ring-blue-400 focus:outline-none cursor-pointer shadow-sm">
                         <option value="all">All Generations</option>
                         <option value="1">Gen 1 (Kanto)</option>
                         <option value="2">Gen 2 (Johto)</option>
@@ -63,7 +88,7 @@
                         <option value="9">Gen 9 (Paldea)</option>
                     </select>
                     
-                    <button id="clearBtn" class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-full text-sm font-semibold transition-colors" title="Clear Filters">
+                    <button id="desktopClearBtn" class="hidden md:block bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-full text-sm font-semibold transition-colors shadow-sm" title="Clear Filters">
                         Clear
                     </button>
                 </div>
@@ -75,7 +100,7 @@
     <div class="bg-white shadow-sm border-b">
         <div class="container mx-auto px-4 py-2 text-sm text-gray-500 flex justify-between items-center">
             <span id="countDisplay">Loading Pokémon...</span>
-            <span class="text-xs">Data: PokeAPI</span>
+            <div id="statusMsg" class="text-xs text-gray-500 font-medium italic">Data: PokeAPI</div>
         </div>
     </div>
 
@@ -140,7 +165,6 @@
                     <div class="spinner mx-auto w-8 h-8 border-2"></div>
                 </div>
 
-                <!-- Evolution Chain Container -->
                 <div id="evoContainer" class="flex flex-row flex-wrap items-center justify-center gap-1 sm:gap-4 min-h-[100px]">
                     <!-- Injected via JS -->
                 </div>
@@ -152,7 +176,6 @@
         const TOTAL_POKEMON = 1025; 
         const API_URL = `https://pokeapi.co/api/v2/pokemon?limit=${TOTAL_POKEMON}`;
         
-        // Gen ranges
         const GENERATIONS = {
             1: { start: 1, end: 151 },
             2: { start: 152, end: 251 },
@@ -166,6 +189,7 @@
         };
 
         let allPokemon = [];
+        let recognition; // Defined globally so clearFilters can access it
         
         // Elements
         const grid = document.getElementById('pokedexGrid');
@@ -173,7 +197,11 @@
         const countDisplay = document.getElementById('countDisplay');
         const genFilter = document.getElementById('genFilter');
         const searchInput = document.getElementById('searchInput');
-        const clearBtn = document.getElementById('clearBtn');
+        const desktopClearBtn = document.getElementById('desktopClearBtn');
+        const mobileClearBtn = document.getElementById('mobileClearBtn');
+        const micBtn = document.getElementById('micBtn');
+        const statusMsg = document.getElementById('statusMsg');
+        
         const noResults = document.getElementById('noResults');
         const modal = document.getElementById('modal');
         const modalContent = document.getElementById('modalContent');
@@ -208,6 +236,124 @@
             }
         }
 
+        // --- Voice Recognition with Fuzzy Logic ---
+        
+        // Levenshtein Distance Algorithm (The "Fuzzy" Logic)
+        function levenshtein(a, b) {
+            const matrix = [];
+            for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+            for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1,
+                            Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+                        );
+                    }
+                }
+            }
+            return matrix[b.length][a.length];
+        }
+
+        // Find Closest Match
+        function findClosestPokemon(transcript) {
+            const target = transcript.toLowerCase().replace(/[^a-z0-9]/g, ''); // remove punctuation/spaces
+            let bestMatch = null;
+            let minDistance = Infinity;
+
+            for (const poke of allPokemon) {
+                const pokeName = poke.name.replace('-', ''); // normalize 'mr-mime' to 'mrmime'
+                const dist = levenshtein(target, pokeName);
+                
+                // If we find an exact match (distance 0), return immediately
+                if (dist === 0) return { name: poke.name, exact: true };
+
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    bestMatch = poke.name;
+                }
+            }
+            
+            // Heuristic: If distance is relatively small compared to word length, assume it's a match
+            // Allow more wiggle room for longer words
+            const threshold = Math.max(3, Math.floor(target.length * 0.4));
+            
+            if (minDistance <= threshold) {
+                return { name: bestMatch, exact: false };
+            }
+            return null; // No good match found
+        }
+
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition(); // Use the global variable
+            recognition.continuous = false;
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            micBtn.addEventListener('click', () => {
+                try {
+                    recognition.start();
+                    micBtn.classList.add('mic-listening');
+                    statusMsg.textContent = "Listening...";
+                    statusMsg.className = "text-xs font-bold text-red-600 animate-pulse";
+                } catch (e) {
+                    console.log("Recognition likely already started");
+                }
+            });
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                console.log("Heard raw:", transcript);
+                
+                // 1. Try fuzzy match
+                const match = findClosestPokemon(transcript);
+
+                if (match) {
+                    searchInput.value = match.name;
+                    statusMsg.textContent = match.exact 
+                        ? `Heard: "${transcript}"` 
+                        : `Heard "${transcript}", searching "${match.name}"`;
+                    statusMsg.className = "text-xs text-green-600 font-bold";
+                } else {
+                    // Fallback to raw text if no Pokemon sounds like it
+                    const cleanText = transcript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+                    searchInput.value = cleanText;
+                    statusMsg.textContent = `Heard: "${cleanText}" (No Pokémon match)`;
+                    statusMsg.className = "text-xs text-gray-500 italic";
+                }
+                
+                filterPokemon();
+            };
+
+            recognition.onspeechend = () => {
+                recognition.stop();
+                micBtn.classList.remove('mic-listening');
+            };
+
+            recognition.onerror = (event) => {
+                micBtn.classList.remove('mic-listening');
+                // Don't show error if aborted by user
+                if (event.error !== 'aborted') {
+                    statusMsg.textContent = "Voice error. Try again.";
+                    statusMsg.className = "text-xs text-red-500 font-bold";
+                }
+            };
+        } else {
+            micBtn.style.display = 'none'; // Hide if not supported
+            console.log("Web Speech API not supported in this browser");
+        }
+
+
+        // --- Standard Logic ---
+
         function getGeneration(id) {
             for (const [gen, range] of Object.entries(GENERATIONS)) {
                 if (id >= range.start && id <= range.end) return parseInt(gen);
@@ -234,9 +380,7 @@
             noResults.classList.add('hidden');
             countDisplay.textContent = `Showing ${pokemonList.length} Pokémon`;
             
-            // Limit initial render to prevent UI freeze on "All", then render rest
             const batchSize = 50;
-
             const fragment = document.createDocumentFragment();
 
             pokemonList.slice(0, batchSize).forEach(poke => {
@@ -244,7 +388,6 @@
             });
             grid.appendChild(fragment);
 
-            // If there are more, render them in a timeout (poor man's virtual scroll)
             if (pokemonList.length > batchSize) {
                 setTimeout(() => {
                     const remainingFragment = document.createDocumentFragment();
@@ -281,10 +424,12 @@
 
         function filterPokemon() {
             const genValue = genFilter.value;
-            const searchValue = searchInput.value.toLowerCase();
+            const searchValue = searchInput.value.toLowerCase().trim();
 
             const filtered = allPokemon.filter(poke => {
                 const matchesGen = genValue === 'all' || poke.generation === parseInt(genValue);
+                // Simple inclusion check works for "pikachu" or "bulbasaur"
+                // It handles partials too: "pika" finds Pikachu
                 const matchesSearch = poke.name.includes(searchValue) || poke.id.toString() === searchValue;
                 return matchesGen && matchesSearch;
             });
@@ -295,17 +440,26 @@
         function clearFilters() {
             searchInput.value = '';
             genFilter.value = 'all';
+            
+            // Stop voice if active
+            if (recognition) {
+                recognition.abort();
+            }
+            micBtn.classList.remove('mic-listening');
+            
             filterPokemon();
+            statusMsg.textContent = "Data: PokeAPI";
+            statusMsg.className = "text-xs text-gray-500 italic";
         }
 
         genFilter.addEventListener('change', filterPokemon);
         searchInput.addEventListener('input', filterPokemon);
-        clearBtn.addEventListener('click', clearFilters);
+        desktopClearBtn.addEventListener('click', clearFilters);
+        mobileClearBtn.addEventListener('click', clearFilters);
 
         // --- MODAL & EVOLUTION LOGIC ---
 
         async function openModal(poke) {
-            // Set basic info
             document.getElementById('modalImg').src = poke.image;
             document.getElementById('modalName').textContent = formatName(poke.name);
             document.getElementById('modalId').textContent = poke.displayId;
@@ -314,30 +468,23 @@
             const wikiUrl = `https://bulbapedia.bulbagarden.net/wiki/${formatName(poke.name).replace(' ', '_')}_(Pok%C3%A9mon)`;
             document.getElementById('wikiLink').href = wikiUrl;
 
-            // Show Modal
             modal.classList.remove('hidden');
             setTimeout(() => {
                 modalContent.classList.remove('scale-95');
                 modalContent.classList.add('scale-100');
             }, 10);
 
-            // Fetch Evolution
             evoContainer.innerHTML = '';
             evoLoading.classList.remove('hidden');
             
             try {
-                // 1. Get Species Data to find Evolution Chain URL
                 const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${poke.id}/`);
                 if(!speciesRes.ok) throw new Error('Species not found');
                 const speciesData = await speciesRes.json();
                 
-                const evoChainUrl = speciesData.evolution_chain.url;
-
-                // 2. Get Evolution Chain
-                const evoRes = await fetch(evoChainUrl);
+                const evoRes = await fetch(speciesData.evolution_chain.url);
                 const evoData = await evoRes.json();
 
-                // 3. Render Chain
                 evoLoading.classList.add('hidden');
                 renderEvolutionChain(evoData.chain);
 
@@ -349,9 +496,6 @@
         }
 
         function renderEvolutionChain(chainNode) {
-            const queue = [{ node: chainNode, depth: 0 }];
-            
-            // Collect all into tiers: { 0: [Node], 1: [Node, Node], 2: [Node] }
             const tiers = {};
             const processNode = (node, depth) => {
                 if (!tiers[depth]) tiers[depth] = [];
@@ -362,32 +506,24 @@
             };
             processNode(chainNode, 0);
 
-            evoContainer.innerHTML = ''; // Clear
+            evoContainer.innerHTML = ''; 
 
-            // Render Tiers
             Object.keys(tiers).forEach((depth, idx) => {
                 const tierNodes = tiers[depth];
                 const depthInt = parseInt(depth);
 
-                // Add Arrow if not first tier
                 if (depthInt > 0) {
                      const arrow = document.createElement('div');
                      arrow.className = "text-red-300 mx-0.5 sm:mx-2";
-                     // Fixed right pointing arrow
                      arrow.innerHTML = `<svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>`;
                      evoContainer.appendChild(arrow);
                 }
 
-                // Tier Container
                 const tierDiv = document.createElement('div');
                 tierDiv.className = "flex flex-wrap justify-center gap-2";
                 
-                // Keep it tight on mobile to allow 3 stages in one row
-                // No width constraint, just flexible
-                
                 tierNodes.forEach(node => {
-                    const el = createEvoNode(node);
-                    tierDiv.appendChild(el);
+                    tierDiv.appendChild(createEvoNode(node));
                 });
                 
                 evoContainer.appendChild(tierDiv);
@@ -395,28 +531,23 @@
         }
 
         function createEvoNode(node) {
-            // 1. Extract ID from URL to get Image
             const urlParts = node.species.url.split('/');
             const id = urlParts[urlParts.length - 2];
             const imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
             const name = formatName(node.species.name);
 
-            // Create Element for this Pokemon
             const pokeDiv = document.createElement('div');
             pokeDiv.className = "flex flex-col items-center p-1 sm:p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group";
             pokeDiv.onclick = (e) => {
                 e.stopPropagation(); 
-                // Optional: Could trigger loading this pokemon in modal here
             };
 
-            // Responsive sizing: smaller on mobile to fit 3 in a row
             pokeDiv.innerHTML = `
                 <div class="w-14 h-14 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-1 sm:mb-2 shadow-sm border border-gray-200 group-hover:border-red-200">
                         <img src="${imgUrl}" alt="${name}" class="w-10 h-10 sm:w-16 sm:h-16 object-contain">
                 </div>
                 <span class="text-[10px] sm:text-xs font-bold text-gray-700 text-center leading-tight max-w-[60px] sm:max-w-none truncate">${name}</span>
             `;
-            
             return pokeDiv;
         }
 
@@ -425,7 +556,7 @@
             modalContent.classList.add('scale-95');
             setTimeout(() => {
                 modal.classList.add('hidden');
-                document.getElementById('evoContainer').innerHTML = ''; // Clean up
+                document.getElementById('evoContainer').innerHTML = '';
             }, 200);
         }
 
@@ -436,7 +567,6 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closeModalFunc();
         });
-
     </script>
 </body>
 </html>
