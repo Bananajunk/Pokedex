@@ -2,18 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Living Pokédex</title>
     
     <!-- SEO & Social Sharing -->
-    <meta name="description" content="A Living Pokédex with AI Voice Search, Evolution Paths, and Battle Weaknesses.">
+    <meta name="description" content="A Living Pokédex with AI Voice Search and Evolution Paths.">
     <meta property="og:title" content="Living Pokédex">
     <meta property="og:description" content="Interactive Pokédex with voice search powered by Gemini.">
     <meta property="og:type" content="website">
     
     <!-- Mobile Web App Settings -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Pokédex">
 
     <!-- App Icons -->
@@ -232,7 +232,7 @@
                 </div>
                 
                 <div class="text-center md:text-left flex-1">
-                    <div class="flex flex-col md:flex-row items-center md:items-baseline gap-3 mb-1">
+                    <div class="flex flex-col md:flex-row items-center md:items-center gap-3 mb-1">
                         <h2 id="modalName" class="text-3xl font-bold text-gray-800 capitalize leading-tight"></h2>
                         <div class="flex items-center gap-2">
                             <span id="modalId" class="text-xl font-mono text-gray-500"></span>
@@ -490,25 +490,20 @@
 
         // --- Battle Logic ---
         function calculateWeaknesses(types) {
-            // types is array like [{type:{name:"fire"}}, {type:{name:"flying"}}]
             const multipliers = {};
             
-            // Initialize
             TYPE_NAMES.forEach(t => multipliers[t] = 1);
 
-            // Multiply for each defending type
             types.forEach(t => {
                 const defIndex = TYPE_NAMES.indexOf(t.type.name);
                 if (defIndex === -1) return;
 
-                // For every attacking type, how effective is it against this defIndex?
                 TYPE_NAMES.forEach((atkType, atkIndex) => {
                     const mult = TYPE_CHART[atkIndex][defIndex];
                     multipliers[atkType] *= mult;
                 });
             });
 
-            // Filter for 2x and 4x
             const weak2x = [];
             const weak4x = [];
 
@@ -1022,6 +1017,7 @@
             statusMsg.className = "text-xs text-gray-500 italic";
             statusMsg.onclick = null; 
             lastErrorDetail = ""; 
+            searchInput.focus(); // Add this line
         }
 
         genFilter.addEventListener('change', filterPokemon);
@@ -1072,13 +1068,13 @@
                         let wHtml = '';
                         
                         if (weak4x.length > 0) {
-                            wHtml += `<div class="mb-2"><span class="text-xs font-bold text-red-600 uppercase tracking-wide block mb-1">Extreme Threat (4x)</span><div class="flex flex-wrap gap-1">`;
+                            wHtml += `<div class="mb-2"><span class="text-xs font-bold text-red-600 uppercase tracking-wide block mb-1">Extreme Threat (4x)</span><div class="flex flex-wrap justify-center md:justify-start gap-1">`;
                             weak4x.forEach(t => wHtml += `<span class="type-pill type-pill-sm type-${t}">${t}</span>`);
                             wHtml += `</div></div>`;
                         }
                         
                         if (weak2x.length > 0) {
-                            wHtml += `<div><span class="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Weakness (2x)</span><div class="flex flex-wrap gap-1">`;
+                            wHtml += `<div><span class="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Weakness (2x)</span><div class="flex flex-wrap justify-center md:justify-start gap-1">`;
                             weak2x.forEach(t => wHtml += `<span class="type-pill type-pill-sm type-${t}">${t}</span>`);
                             wHtml += `</div></div>`;
                         }
@@ -1173,8 +1169,14 @@
             const name = cleanName(node.species.name); // Use cleaner on evo names too
             const formattedName = formatName(name);
             
+            // Format Condition
+            let evoReq = "";
+            if (node.evolution_details && node.evolution_details.length > 0) {
+                evoReq = formatEvolutionCondition(node.evolution_details[0]);
+            }
+            
             const pokeDiv = document.createElement('div');
-            pokeDiv.className = "flex flex-col items-center p-1 sm:p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group";
+            pokeDiv.className = "relative flex flex-col items-center p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group mt-3"; // Added relative and mt-3
             
             pokeDiv.onclick = (e) => {
                 e.stopPropagation(); 
@@ -1187,10 +1189,40 @@
                     console.warn("Pokemon not found in local list:", name);
                 }
             };
+            
+            // Badge logic
+            const badgeHTML = evoReq ? `<span class="absolute -top-2 left-1/2 transform -translate-x-1/2 text-[9px] text-gray-500 font-medium bg-white px-2 py-0.5 rounded-full shadow-sm border border-gray-100 whitespace-nowrap z-10">${evoReq}</span>` : '';
 
-            pokeDiv.innerHTML = `<div class="w-14 h-14 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-1 sm:mb-2 shadow-sm border border-gray-200 group-hover:border-red-200"><img src="${imgUrl}" class="w-10 h-10 sm:w-16 sm:h-16 object-contain"></div><span class="text-[10px] sm:text-xs font-bold text-gray-700 text-center leading-tight max-w-[60px] sm:max-w-none truncate">${formattedName}</span>`;
+            pokeDiv.innerHTML = `
+                ${badgeHTML}
+                <div class="w-14 h-14 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-1 sm:mb-2 shadow-sm border border-gray-200 group-hover:border-red-200"><img src="${imgUrl}" class="w-10 h-10 sm:w-16 sm:h-16 object-contain"></div>
+                <span class="text-[10px] sm:text-xs font-bold text-gray-700 text-center leading-tight max-w-[60px] sm:max-w-none truncate">${formattedName}</span>
+            `;
             return pokeDiv;
         }
+
+        // Helper to format conditions
+        function formatEvolutionCondition(detail) {
+            if (!detail) return '';
+            const triggers = [];
+            
+            if (detail.min_level) triggers.push(`Lvl ${detail.min_level}`);
+            if (detail.min_happiness) triggers.push('Friendship');
+            if (detail.min_beauty) triggers.push('Beauty');
+            if (detail.item) triggers.push(formatName(cleanName(detail.item.name)));
+            if (detail.trigger.name === 'trade') triggers.push('Trade');
+            if (detail.held_item) triggers.push(`Hold ${formatName(cleanName(detail.held_item.name))}`);
+            if (detail.known_move) triggers.push(`Knows ${formatName(cleanName(detail.known_move.name))}`);
+            if (detail.known_move_type) triggers.push(`Knows ${formatName(detail.known_move_type.name)} Type`);
+            if (detail.location) triggers.push(`at ${formatName(cleanName(detail.location.name))}`);
+            if (detail.time_of_day) triggers.push(`(${detail.time_of_day})`);
+            if (detail.rain) triggers.push('(Rain)');
+            
+            if (triggers.length === 0) return ''; // Don't show anything if unknown/special
+            // Join first 2 only to keep it short
+            return triggers.slice(0, 2).join(' + ');
+        }
+
         function closeModalFunc() { modalContent.classList.remove('scale-100'); modalContent.classList.add('scale-95'); setTimeout(() => { modal.classList.add('hidden'); evoContainer.innerHTML = ''; }, 200); }
         closeModal.addEventListener('click', closeModalFunc);
         modal.addEventListener('click', (e) => { if (e.target === modal) closeModalFunc(); });
