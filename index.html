@@ -345,8 +345,8 @@
 
     <script>
         // --- Constants & State ---
-        const TOTAL_POKEMON = 1025; 
-        const API_URL = `https://pokeapi.co/api/v2/pokemon?limit=${TOTAL_POKEMON}`;
+        const API_URL = `https://pokeapi.co/api/v2/pokemon?limit=10000`;
+        const MAX_STANDARD_ID = 1025; 
         
         const GENERATIONS = {
             1: { start: 1, end: 151 },
@@ -360,17 +360,41 @@
             9: { start: 906, end: 1025 }
         };
 
-        // Type Effectiveness Matrix (Simplified for key weaknesses)
-        // 0: Normal, 1: Fire, 2: Water, 3: Electric, 4: Grass, 5: Ice, 
-        // 6: Fighting, 7: Poison, 8: Ground, 9: Flying, 10: Psychic, 
-        // 11: Bug, 12: Rock, 13: Ghost, 14: Dragon, 15: Steel, 16: Dark, 17: Fairy
+        const REGIONAL_EVOLUTIONS = {
+            'perrserker': 'Galarian',
+            'runerigus': 'Galarian',
+            'sirfetchd': 'Galarian',
+            'cursola': 'Galarian',
+            'obstagoon': 'Galarian',
+            'mr-rime': 'Galarian',
+            'overqwil': 'Hisuian',
+            'sneasler': 'Hisuian',
+            'wyrdeer': 'Hisuian',
+            'kleavor': 'Hisuian',
+            'ursaluna': 'Hisuian',
+            'basculegion': 'Hisuian',
+            'clodsire': 'Paldean',
+            'annihilape': 'Paldean',
+            'dudunsparce': 'Paldean',
+            'farigiraf': 'Paldean',
+            'kingambit': 'Paldean',
+            'toedscruel': 'Paldean',
+            'wugtrio': 'Paldean',
+            'dipplin': 'Applin',
+            'hydrapple': 'Applin'
+        };
+
+        const STANDARD_EVOLUTIONS_TO_BLOCK_IF_REGIONAL = [
+            'persian', 'cofagrigus', 'raichu', 'marowak', 'exeggutor', 'weezing', 'linoone'
+        ];
+
+        // Type Effectiveness Matrix
         const TYPE_NAMES = [
             'normal', 'fire', 'water', 'electric', 'grass', 'ice', 
             'fighting', 'poison', 'ground', 'flying', 'psychic', 
             'bug', 'rock', 'ghost', 'dragon', 'steel', 'dark', 'fairy'
         ];
 
-        // Rows = Attacker, Cols = Defender. Values: 0 (No effect), 0.5 (Not very), 1 (Normal), 2 (Super)
         const TYPE_CHART = [
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.5, 0, 1, 0.5, 1, 1], // Normal
             [1, 0.5, 0.5, 1, 2, 2, 1, 1, 1, 1, 1, 2, 0.5, 1, 0.5, 2, 1, 1], // Fire
@@ -441,16 +465,42 @@
                 const response = await fetch(API_URL);
                 const data = await response.json();
                 
-                allPokemon = data.results.map((p, index) => {
-                    const id = index + 1;
-                    return {
-                        id: id,
-                        name: cleanName(p.name),
-                        image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
-                        generation: getGeneration(id),
-                        displayId: formatId(id)
-                    };
-                });
+                allPokemon = data.results
+                    .map((p) => {
+                        const id = parseInt(p.url.split('/')[6]);
+                        return { 
+                            name: p.name, 
+                            id: id,
+                            url: p.url
+                        };
+                    })
+                    .filter(p => {
+                        if (p.id <= MAX_STANDARD_ID) return true;
+                        const n = p.name;
+                        return n.includes('-alola') || n.includes('-galar') || n.includes('-hisui') || n.includes('-paldea');
+                    })
+                    .map(p => {
+                        const clean = cleanName(p.name);
+                        const formatted = formatName(clean); 
+                        
+                        let gen = 9; 
+                        if (p.id <= MAX_STANDARD_ID) {
+                            gen = getGeneration(p.id);
+                        } else {
+                            if (p.name.includes('-alola')) gen = 7;
+                            else if (p.name.includes('-galar') || p.name.includes('-hisui')) gen = 8;
+                            else if (p.name.includes('-paldea')) gen = 9;
+                        }
+
+                        return {
+                            id: p.id,
+                            name: clean, 
+                            displayName: formatted, 
+                            image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`,
+                            generation: gen,
+                            displayId: p.id <= MAX_STANDARD_ID ? formatId(p.id) : 'VAR'
+                        };
+                    });
 
                 renderPokemon(allPokemon);
                 loading.classList.add('hidden');
@@ -463,6 +513,16 @@
 
         // --- Helper: Clean Names ---
         function cleanName(name) {
+            if (name.includes('-alola')) return 'Alolan ' + name.replace('-alola', '');
+            if (name.includes('-galar')) return 'Galarian ' + name.replace('-galar', '');
+            if (name.includes('-hisui')) return 'Hisuian ' + name.replace('-hisui', '');
+            if (name.includes('-paldea')) {
+                if(name.includes('combat')) return 'Paldean Tauros (Combat)';
+                if(name.includes('blaze')) return 'Paldean Tauros (Blaze)';
+                if(name.includes('aqua')) return 'Paldean Tauros (Aqua)';
+                return 'Paldean ' + name.replace('-paldea', '');
+            }
+
             const suffixesToRemove = [
                 '-normal', '-attack', '-defense', '-speed', '-plant', '-sandy', '-trash',
                 '-overcast', '-east', '-west', '-standard', '-incarnate', '-therian',
@@ -475,14 +535,14 @@
 
             let cleaned = name;
             
-            if (name.startsWith('tapu-') || name.startsWith('iron-') || name.startsWith('scream-') || name.startsWith('flutter-') || name.startsWith('great-') || name.startsWith('brute-') || name.startsWith('sandy-') || name.startsWith('slither-') || name.startsWith('walking-') || name.startsWith('raging-') || name.startsWith('gouging-') || name.startsWith('roaring-') || name.startsWith('iron-') || name === 'ho-oh' || name === 'porygon-z' || name === 'type-null' || name === 'jangmo-o' || name === 'hakamo-o' || name === 'kommo-o') {
-                // Keep these
-            } else {
-                for (const suffix of suffixesToRemove) {
-                    if (cleaned.endsWith(suffix)) {
-                        cleaned = cleaned.substring(0, cleaned.length - suffix.length);
-                        break; 
-                    }
+            if (name === 'ho-oh' || name === 'porygon-z' || name === 'type-null' || name.startsWith('jangmo') || name.startsWith('hakamo') || name.startsWith('kommo') || name.startsWith('tapu') || name.startsWith('iron') || name.startsWith('scream') || name.startsWith('flutter') || name.startsWith('great') || name.startsWith('brute') || name.startsWith('sandy') || name.startsWith('slither') || name.startsWith('walking') || name.startsWith('raging') || name.startsWith('gouging') || name.startsWith('roaring')) {
+                return name; 
+            }
+
+            for (const suffix of suffixesToRemove) {
+                if (cleaned.endsWith(suffix)) {
+                    cleaned = cleaned.substring(0, cleaned.length - suffix.length);
+                    break; 
                 }
             }
             return cleaned;
@@ -491,13 +551,11 @@
         // --- Battle Logic ---
         function calculateWeaknesses(types) {
             const multipliers = {};
-            
             TYPE_NAMES.forEach(t => multipliers[t] = 1);
 
             types.forEach(t => {
                 const defIndex = TYPE_NAMES.indexOf(t.type.name);
                 if (defIndex === -1) return;
-
                 TYPE_NAMES.forEach((atkType, atkIndex) => {
                     const mult = TYPE_CHART[atkIndex][defIndex];
                     multipliers[atkType] *= mult;
@@ -559,9 +617,8 @@
                 }
 
                 if (data.models) {
-                    modelSelect.innerHTML = ""; // Clear existing
+                    modelSelect.innerHTML = ""; 
                     let count = 0;
-                    
                     data.models.sort((a, b) => b.name.localeCompare(a.name));
 
                     data.models.forEach(model => {
@@ -990,9 +1047,9 @@
             card.innerHTML = `
                 <div class="bg-gray-50 p-6 flex items-center justify-center relative">
                     <span class="absolute top-2 left-3 text-xs font-bold text-gray-400 font-mono tracking-wider">${poke.displayId}</span>
-                    <img src="${poke.image}" alt="${poke.name}" loading="lazy" class="w-32 h-32 object-contain transform transition-transform duration-300 hover:scale-110" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${poke.id}.png'">
+                    <img src="${poke.image}" alt="${poke.displayName}" loading="lazy" class="w-32 h-32 object-contain transform transition-transform duration-300 hover:scale-110" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${poke.id}.png'">
                 </div>
-                <div class="p-3 text-center"><h3 class="text-gray-800 font-semibold text-sm sm:text-base truncate">${formatName(poke.name)}</h3></div>
+                <div class="p-3 text-center"><h3 class="text-gray-800 font-semibold text-sm sm:text-base truncate">${poke.displayName}</h3></div>
             `;
             return card;
         }
@@ -1002,7 +1059,7 @@
             const searchValue = searchInput.value.toLowerCase().trim();
             const filtered = allPokemon.filter(poke => {
                 const matchesGen = genValue === 'all' || poke.generation === parseInt(genValue);
-                const matchesSearch = poke.name.includes(searchValue) || poke.id.toString() === searchValue;
+                const matchesSearch = poke.displayName.toLowerCase().includes(searchValue) || poke.name.toLowerCase().includes(searchValue) || poke.id.toString() === searchValue;
                 return matchesGen && matchesSearch;
             });
             renderPokemon(filtered);
@@ -1017,7 +1074,7 @@
             statusMsg.className = "text-xs text-gray-500 italic";
             statusMsg.onclick = null; 
             lastErrorDetail = ""; 
-            searchInput.focus(); // Add this line
+            searchInput.focus(); 
         }
 
         genFilter.addEventListener('change', filterPokemon);
@@ -1027,10 +1084,10 @@
         // --- Modal ---
         async function openModal(poke) {
             document.getElementById('modalImg').src = poke.image;
-            document.getElementById('modalName').textContent = formatName(poke.name);
+            document.getElementById('modalName').textContent = poke.displayName;
             document.getElementById('modalId').textContent = poke.displayId;
             document.getElementById('modalGen').textContent = poke.generation;
-            document.getElementById('wikiLink').href = `https://bulbapedia.bulbagarden.net/wiki/${formatName(poke.name).replace(' ', '_')}_(Pok%C3%A9mon)`;
+            document.getElementById('wikiLink').href = `https://bulbapedia.bulbagarden.net/wiki/${poke.displayName.replace(' ', '_')}_(Pok%C3%A9mon)`;
             modal.classList.remove('hidden');
             setTimeout(() => { modalContent.classList.remove('scale-95'); modalContent.classList.add('scale-100'); }, 10);
             
@@ -1042,16 +1099,21 @@
             evoLoading.classList.remove('hidden');
 
             try {
-                // Fetch Evolution/Flavor Text (Games)
-                const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${poke.id}/`);
+                // Determine the correct species URL.
+                // If it's a standard pokemon (id <= 1025), we can use the ID directly.
+                // If it's a variant (id > 10000), the species ID is different.
+                // We MUST fetch the Pokemon Details first to get the correct species URL.
+                const mainRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${poke.id}/`);
+                const mainData = await mainRes.json();
+                
+                // Now fetch the species data using the URL from mainData
+                const speciesRes = await fetch(mainData.species.url);
                 const speciesData = await speciesRes.json();
+                
+                // Fetch Evolution Chain
                 const evoRes = await fetch(speciesData.evolution_chain.url);
                 const evoData = await evoRes.json();
                 
-                // Fetch Types (Main Pokemon Endpoint)
-                const mainRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${poke.id}/`);
-                const mainData = await mainRes.json();
-
                 // 1. Render Types
                 if(mainData.types) {
                     mainData.types.forEach(t => {
@@ -1086,7 +1148,8 @@
 
                 // 3. Render Evolution
                 evoLoading.classList.add('hidden');
-                renderEvolutionChain(evoData.chain);
+                // Pass current pokemon name to help render correct images for variants
+                renderEvolutionChain(evoData.chain, poke.displayName);
 
                 // 4. Render Games
                 if (speciesData.flavor_text_entries && speciesData.flavor_text_entries.length > 0) {
@@ -1133,13 +1196,14 @@
                 }
 
             } catch (err) { 
+                console.error(err); // Debug
                 evoLoading.classList.add('hidden'); 
                 evoContainer.innerHTML = '<p class="text-gray-400 text-sm italic">Data unavailable.</p>'; 
                 gamesContainer.innerHTML = '<p class="text-gray-400 text-sm italic">Game data unavailable.</p>'; 
             }
         }
 
-        function renderEvolutionChain(chainNode) {
+        function renderEvolutionChain(chainNode, currentNameContext) {
             const tiers = {};
             const processNode = (node, depth) => {
                 if (!tiers[depth]) tiers[depth] = [];
@@ -1148,26 +1212,78 @@
             };
             processNode(chainNode, 0);
             evoContainer.innerHTML = ''; 
+            
+            // Context Detection: Extract "Alolan", "Galarian" from currently viewed pokemon name
+            let regionContext = "";
+            if (currentNameContext) {
+                if (currentNameContext.includes("Alolan")) regionContext = "Alolan";
+                if (currentNameContext.includes("Galarian")) regionContext = "Galarian";
+                if (currentNameContext.includes("Hisuian")) regionContext = "Hisuian";
+                if (currentNameContext.includes("Paldean")) regionContext = "Paldean";
+            }
+
             Object.keys(tiers).forEach((depth) => {
                 const depthInt = parseInt(depth);
-                if (depthInt > 0) {
-                     const arrow = document.createElement('div');
-                     arrow.className = "text-red-300 mx-0.5 sm:mx-2";
-                     arrow.innerHTML = `<svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>`;
-                     evoContainer.appendChild(arrow);
+                
+                // --- FILTER LOGIC START ---
+                // We filter the nodes in this tier based on the context
+                const filteredNodes = tiers[depth].filter(node => shouldKeepNode(node, regionContext));
+                
+                if (filteredNodes.length > 0) {
+                     // Only render arrow if it's not the first tier AND we have visible nodes
+                    if (depthInt > 0) {
+                         const arrow = document.createElement('div');
+                         arrow.className = "text-red-300 mx-0.5 sm:mx-2";
+                         arrow.innerHTML = `<svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>`;
+                         evoContainer.appendChild(arrow);
+                    }
+                    const tierDiv = document.createElement('div');
+                    tierDiv.className = "flex flex-wrap justify-center gap-2";
+                    filteredNodes.forEach(node => tierDiv.appendChild(createEvoNode(node, regionContext)));
+                    evoContainer.appendChild(tierDiv);
                 }
-                const tierDiv = document.createElement('div');
-                tierDiv.className = "flex flex-wrap justify-center gap-2";
-                tiers[depth].forEach(node => tierDiv.appendChild(createEvoNode(node)));
-                evoContainer.appendChild(tierDiv);
+                // --- FILTER LOGIC END ---
             });
         }
-        function createEvoNode(node) {
-            const urlParts = node.species.url.split('/');
-            const id = urlParts[urlParts.length - 2];
+        
+        function shouldKeepNode(node, regionContext) {
+            const speciesName = node.species.name;
+            
+            // Check if this species is a "Regional Evolution"
+            if (REGIONAL_EVOLUTIONS[speciesName]) {
+                // If it is, only keep it if the current context matches its region
+                return REGIONAL_EVOLUTIONS[speciesName] === regionContext;
+            }
+            
+            // Check if this species is a "Standard Evolution" that should be hidden in a regional context
+            if (STANDARD_EVOLUTIONS_TO_BLOCK_IF_REGIONAL.includes(speciesName)) {
+                // If we are in "Galarian" mode, hide "Persian"
+                if (regionContext === 'Galarian' && (speciesName === 'persian' || speciesName === 'cofagrigus' || speciesName === 'linoone' || speciesName === 'mr-mime' || speciesName === 'weezing')) return false;
+                if (regionContext === 'Alolan' && (speciesName === 'raichu' || speciesName === 'marowak' || speciesName === 'exeggutor')) return false;
+            }
+            
+            return true;
+        }
+        
+        function createEvoNode(node, regionContext) {
+            // Base Species Info
+            let name = cleanName(node.species.name);
+            let formattedName = formatName(name);
+            let id = node.species.url.split('/')[6]; // Default Species ID
+            
+            // Context Awareness Logic
+            if (regionContext) {
+                const variantNameAttempt = `${regionContext} ${formattedName}`;
+                const variantMatch = allPokemon.find(p => p.displayName === variantNameAttempt);
+                
+                if (variantMatch) {
+                    id = variantMatch.id; 
+                    formattedName = variantMatch.displayName;
+                }
+            }
+
             const imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
-            const name = cleanName(node.species.name); // Use cleaner on evo names too
-            const formattedName = formatName(name);
+
             
             // Format Condition
             let evoReq = "";
@@ -1176,17 +1292,20 @@
             }
             
             const pokeDiv = document.createElement('div');
-            pokeDiv.className = "relative flex flex-col items-center p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group mt-3"; // Added relative and mt-3
+            pokeDiv.className = "relative flex flex-col items-center p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group mt-3"; 
             
             pokeDiv.onclick = (e) => {
                 e.stopPropagation(); 
-                const targetPoke = allPokemon.find(p => p.name.toLowerCase() === name.toLowerCase()); // Compare cleaned names
+                const targetPoke = allPokemon.find(p => p.displayName === formattedName); 
                 if (targetPoke) {
                     searchInput.value = formattedName;
                     filterPokemon(); 
                     openModal(targetPoke); 
                 } else {
-                    console.warn("Pokemon not found in local list:", name);
+                    const basePoke = allPokemon.find(p => p.name.toLowerCase() === node.species.name.toLowerCase());
+                     if (basePoke) {
+                        openModal(basePoke);
+                     }
                 }
             };
             
@@ -1218,14 +1337,33 @@
             if (detail.time_of_day) triggers.push(`(${detail.time_of_day})`);
             if (detail.rain) triggers.push('(Rain)');
             
-            if (triggers.length === 0) return ''; // Don't show anything if unknown/special
-            // Join first 2 only to keep it short
+            if (triggers.length === 0) return ''; 
             return triggers.slice(0, 2).join(' + ');
         }
 
         function closeModalFunc() { modalContent.classList.remove('scale-100'); modalContent.classList.add('scale-95'); setTimeout(() => { modal.classList.add('hidden'); evoContainer.innerHTML = ''; }, 200); }
         closeModal.addEventListener('click', closeModalFunc);
         modal.addEventListener('click', (e) => { if (e.target === modal) closeModalFunc(); });
+
+        // Close modals on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                // Close Main Modal
+                if (!modal.classList.contains('hidden')) {
+                    closeModalFunc();
+                }
+                // Close Settings Modal
+                const settingsModal = document.getElementById('settingsModal');
+                if (!settingsModal.classList.contains('hidden')) {
+                    toggleSettings();
+                }
+                // Close Error Modal
+                const errorModal = document.getElementById('errorModal');
+                if (!errorModal.classList.contains('hidden')) {
+                    errorModal.classList.add('hidden');
+                }
+            }
+        });
     </script>
 </body>
 </html>
