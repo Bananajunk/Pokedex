@@ -143,6 +143,12 @@
 </head>
 <body class="bg-gray-100 min-h-screen font-sans flex flex-col relative">
 
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-24 left-1/2 transform -translate-x-1/2 bg-gray-900/90 backdrop-blur text-white px-4 py-2 rounded-full shadow-2xl opacity-0 transition-all duration-300 pointer-events-none z-[150] text-xs font-bold flex items-center gap-2 border border-gray-700 translate-y-4">
+        <i class="ph ph-check-circle text-green-400 text-lg"></i>
+        <span id="toastMsg">Notification</span>
+    </div>
+
     <!-- Header -->
     <header class="bg-red-600 text-white sticky top-0 z-40 shadow-md">
         <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
@@ -231,6 +237,13 @@
     <!-- FAB Container -->
     <div class="fixed bottom-6 right-6 z-[90] flex flex-col gap-4 items-end">
         
+        <!-- Team FAB -->
+        <div class="fab-container relative flex items-center">
+             <button id="fabTeam" onclick="openTeamModal()" class="w-14 h-14 bg-yellow-500 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:bg-yellow-600 active:scale-95 focus:outline-none" title="My Team">
+                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" class="w-8 h-8 filter brightness-200">
+            </button>
+        </div>
+
         <!-- Camera FAB -->
         <div class="fab-container relative flex items-center">
             <div id="cameraTooltip" class="fab-tooltip absolute right-full mr-3 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
@@ -254,6 +267,11 @@
             
             <button id="closeModal" class="absolute top-2 right-2 z-30 text-gray-400 hover:text-gray-800 bg-white/50 hover:bg-white rounded-full p-1 opacity-70 hover:opacity-100 transition-all">
                 <i class="ph ph-x text-xl"></i>
+            </button>
+            
+            <!-- Add to Team Button -->
+            <button id="addToTeamBtn" class="absolute top-2 left-2 z-30 text-gray-500 hover:text-blue-600 bg-white/80 hover:bg-white rounded-full p-2 shadow-sm transition-all" onclick="toggleTeamMember()" title="Add to Team">
+                <i id="teamIcon" class="ph ph-plus text-xl"></i>
             </button>
 
             <!-- Scrollable Content Area -->
@@ -340,6 +358,44 @@
                     </a>
                 </div>
 
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Modal -->
+    <div id="teamModal" class="fixed inset-0 bg-black bg-opacity-80 hidden z-[120] flex justify-center items-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col relative">
+             <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-2xl">
+                <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" class="w-6 h-6">
+                    My Team <span id="teamCount" class="text-sm font-normal text-gray-500">(0/6)</span>
+                </h2>
+                <button onclick="closeTeamModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-4 overflow-y-auto flex-1">
+                <!-- Team Slots -->
+                <div id="teamGrid" class="grid grid-cols-3 gap-3 mb-6">
+                    <!-- JS Injected -->
+                </div>
+
+                <!-- Analysis Section -->
+                <div id="teamAnalysis" class="hidden">
+                    <h3 class="text-sm font-bold text-gray-700 uppercase tracking-widest mb-3 border-b pb-1">Team Analysis</h3>
+                    <div id="teamCoverage" class="mb-4 text-xs text-gray-600 space-y-2"></div>
+                    
+                    <button id="aiCoachBtn" class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2" onclick="analyzeTeamAI()">
+                        <i class="ph ph-magic-wand text-xl"></i> Ask AI Coach
+                    </button>
+                    
+                    <div id="aiResponse" class="mt-4 text-sm text-gray-700 bg-blue-50 p-4 rounded-lg border border-blue-100 hidden"></div>
+                </div>
+                
+                <div id="emptyTeamMsg" class="text-center text-gray-400 italic py-8 hidden">
+                    Your team is empty. Add Pokémon from their detail cards!
+                </div>
             </div>
         </div>
     </div>
@@ -499,6 +555,11 @@
         let GEMINI_API_KEY = localStorage.getItem('gemini_api_key') || "";
         let GEMINI_MODEL = localStorage.getItem('gemini_model') || "gemini-1.5-flash-latest";
         let lastErrorDetail = "";
+        
+        // TEAM STATE
+        let myTeam = JSON.parse(localStorage.getItem('myTeam') || "[]");
+        let currentModalPokemon = null; // Store current viewed pokemon for adding to team
+        let toastTimeout;
 
         const grid = document.getElementById('pokedexGrid');
         const loading = document.getElementById('loading');
@@ -531,9 +592,25 @@
         const statsToggleBtn = document.getElementById('statsToggleBtn');
         const formsSection = document.getElementById('formsSection');
         const formsContainer = document.getElementById('formsContainer');
+        
+        // Team Elements
+        const fabTeam = document.getElementById('fabTeam');
+        const teamModal = document.getElementById('teamModal');
+        const teamGrid = document.getElementById('teamGrid');
+        const addToTeamBtn = document.getElementById('addToTeamBtn');
+        const teamIcon = document.getElementById('teamIcon');
+        const teamCount = document.getElementById('teamCount');
+        const teamAnalysis = document.getElementById('teamAnalysis');
+        const teamCoverage = document.getElementById('teamCoverage');
+        const aiCoachBtn = document.getElementById('aiCoachBtn');
+        const aiResponse = document.getElementById('aiResponse');
+        const emptyTeamMsg = document.getElementById('emptyTeamMsg');
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
 
         init();
         updateFabStates();
+        updateTeamUI(); // Init team UI state
         apiKeyInput.value = GEMINI_API_KEY; 
         modelSelect.value = GEMINI_MODEL;
 
@@ -589,7 +666,215 @@
                 loading.innerHTML = `<p class="text-red-500">Error loading data.</p>`;
             }
         }
+        
+        // --- TEAM LOGIC ---
+        
+        function updateTeamButtonState() {
+            if (!currentModalPokemon) return;
+            
+            const isInTeam = myTeam.some(p => p.name === currentModalPokemon.displayName);
+            if (isInTeam) {
+                addToTeamBtn.innerHTML = '<i class="ph ph-minus text-xl text-red-500"></i>';
+                addToTeamBtn.title = "Remove from Team";
+            } else {
+                addToTeamBtn.innerHTML = '<i class="ph ph-plus text-xl text-green-500"></i>';
+                addToTeamBtn.title = "Add to Team";
+                if (myTeam.length >= 6) {
+                    addToTeamBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    addToTeamBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        }
+        
+        function toggleTeamMember() {
+            if (!currentModalPokemon) return;
+            
+            const existingIndex = myTeam.findIndex(p => p.name === currentModalPokemon.displayName);
+            
+            if (existingIndex > -1) {
+                // Remove
+                myTeam.splice(existingIndex, 1);
+                showToast(`Removed ${currentModalPokemon.displayName} from team`, 'error');
+                updateTeamButtonState(); // Update visual state immediately if we stay open
+            } else {
+                // Add
+                if (myTeam.length >= 6) {
+                    alert("Team is full! Remove a Pokemon first.");
+                    return;
+                }
+                // Store minimal info needed
+                myTeam.push({
+                    name: currentModalPokemon.displayName,
+                    image: currentModalPokemon.image,
+                    types: currentModalPokemon.types || [] // Store types for analysis
+                });
+                showToast(`Added ${currentModalPokemon.displayName} to team`);
+                
+                // Close modal on add for faster workflow
+                closeModalFunc();
+            }
+            
+            localStorage.setItem('myTeam', JSON.stringify(myTeam));
+            // updateTeamButtonState(); // Moved this inside specific blocks or just keep it here? 
+            // If I close the modal on add, updating the button state on the invisible modal doesn't matter much, 
+            // but for Remove (where I stay open), I definitely need it.
+            // Actually, if I close it, I don't need to update the button state because next time I open it, 
+            // openModal() calls updateTeamButtonState().
+            
+            // However, to be safe and consistent:
+            if (existingIndex > -1) {
+                 updateTeamButtonState();
+            }
 
+            updateTeamUI(); // Update the main list immediately
+        }
+
+        function showToast(message, type = 'success') {
+            const icon = toast.querySelector('i');
+            toastMsg.textContent = message;
+            
+            if (type === 'error') {
+                icon.className = "ph ph-minus-circle text-red-400 text-lg";
+            } else {
+                icon.className = "ph ph-check-circle text-green-400 text-lg";
+            }
+            
+            toast.classList.remove('opacity-0', 'translate-y-4');
+            
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-4');
+            }, 2500);
+        }
+        
+        function updateTeamUI() {
+            teamCount.textContent = `(${myTeam.length}/6)`;
+            
+            // Render Team Modal Grid
+            teamGrid.innerHTML = '';
+            
+            if (myTeam.length === 0) {
+                emptyTeamMsg.classList.remove('hidden');
+                teamAnalysis.classList.add('hidden');
+            } else {
+                emptyTeamMsg.classList.add('hidden');
+                teamAnalysis.classList.remove('hidden');
+                
+                myTeam.forEach((p, index) => {
+                     const card = document.createElement('div');
+                     card.className = "bg-gray-50 border border-gray-200 rounded-lg p-2 flex flex-col items-center relative group";
+                     card.innerHTML = `
+                        <button onclick="removeTeamMember(${index})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-600 focus:outline-none">
+                            <i class="ph ph-x text-xs"></i>
+                        </button>
+                        <img src="${p.image}" class="w-12 h-12 object-contain mb-1">
+                        <span class="text-[9px] font-bold text-gray-700 text-center leading-tight truncate w-full">${p.name}</span>
+                     `;
+                     teamGrid.appendChild(card);
+                });
+                
+                // Do algorithmic analysis
+                renderTeamAnalysis();
+            }
+        }
+        
+        function removeTeamMember(index) {
+            const removedName = myTeam[index].name;
+            myTeam.splice(index, 1);
+            localStorage.setItem('myTeam', JSON.stringify(myTeam));
+            updateTeamUI();
+            if (currentModalPokemon) updateTeamButtonState(); // Update modal btn if open
+            showToast(`Removed ${removedName} from team`, 'error');
+        }
+        
+        function openTeamModal() {
+            teamModal.classList.remove('hidden');
+        }
+        
+        function closeTeamModal() {
+            teamModal.classList.add('hidden');
+            // Clear AI response when closing to reset state
+            // aiResponse.classList.add('hidden'); 
+            // aiResponse.innerHTML = '';
+        }
+        
+        function renderTeamAnalysis() {
+            // Aggregate Weaknesses
+            const weaknessCounts = {};
+            
+            myTeam.forEach(member => {
+                // If we saved types, calculate. 
+                // Note: If added before types were saved (legacy), this might fail gracefully.
+                if (member.types) {
+                     const { weak2x, weak4x } = calculateWeaknesses(member.types);
+                     [...weak2x, ...weak4x].forEach(t => {
+                         weaknessCounts[t] = (weaknessCounts[t] || 0) + 1;
+                     });
+                }
+            });
+            
+            // Find major weaknesses (3+ members weak)
+            const majorWeaknesses = Object.entries(weaknessCounts)
+                .filter(([type, count]) => count >= 3)
+                .map(([type]) => type);
+                
+            if (majorWeaknesses.length > 0) {
+                 teamCoverage.innerHTML = `<span class="text-red-600 font-bold">Major Weakness Warning:</span> Your team struggles against <span class="font-bold">${majorWeaknesses.join(', ')}</span> types.`;
+            } else {
+                 teamCoverage.innerHTML = `<span class="text-green-600 font-bold">Good Coverage:</span> No major shared weaknesses found.`;
+            }
+        }
+        
+        async function analyzeTeamAI() {
+            if (!GEMINI_API_KEY) {
+                alert("Please set your Gemini API Key in Settings first!");
+                toggleSettings();
+                return;
+            }
+            
+            aiResponse.classList.remove('hidden');
+            aiResponse.innerHTML = '<div class="flex items-center gap-2"><div class="spinner w-4 h-4 border-2"></div> <span class="italic">Coach is thinking...</span></div>';
+            
+            const teamNames = myTeam.map(p => p.name).join(', ');
+            const prompt = `
+                I am building a Pokemon team for single battles. 
+                My current team is: ${teamNames}.
+                Please analyze this team briefly. 
+                1. Rate it out of 10.
+                2. Identify 1 major strength and 1 major weakness.
+                3. Suggest 1 move or strategy.
+                Keep it concise (under 100 words).
+            `;
+            
+             const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                     aiResponse.innerHTML = `<span class="text-red-500 font-bold">Error: ${data.error.message}</span>`;
+                     return;
+                }
+                
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                // Simple formatting for markdown
+                const formattedText = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+                
+                aiResponse.innerHTML = formattedText;
+                
+            } catch (err) {
+                 aiResponse.innerHTML = `<span class="text-red-500 font-bold">Network Error. Check connection.</span>`;
+            }
+        }
+
+        // --- Clean Name Function ---
         function cleanName(name) {
             if (name.includes('-alola')) return 'Alolan ' + name.replace('-alola', '');
             if (name.includes('-galar')) return 'Galarian ' + name.replace('-galar', '');
@@ -1188,14 +1473,17 @@
 
         // --- Modal ---
         async function openModal(poke) {
+            currentModalPokemon = poke; // Save for team add
             document.getElementById('modalImg').src = poke.image;
-            // Set data-id for fallback in case high-res image fails
             document.getElementById('modalImg').dataset.id = poke.id; 
             
             document.getElementById('modalName').textContent = poke.displayName;
             document.getElementById('modalId').textContent = poke.displayId;
             document.getElementById('modalGen').textContent = poke.generation;
             document.getElementById('wikiLink').href = `https://bulbapedia.bulbagarden.net/wiki/${poke.displayName.replace(' ', '_')}_(Pok%C3%A9mon)`;
+            
+            updateTeamButtonState(); // Check if in team
+            
             modal.classList.remove('hidden');
             setTimeout(() => { modalContent.classList.remove('scale-95'); modalContent.classList.add('scale-100'); }, 10);
             
@@ -1213,6 +1501,9 @@
                 const mainRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${poke.id}/`);
                 const mainData = await mainRes.json();
                 
+                // Update current pokemon with types for team feature
+                currentModalPokemon.types = mainData.types;
+
                 const speciesRes = await fetch(mainData.species.url);
                 const speciesData = await speciesRes.json();
                 
@@ -1595,6 +1886,10 @@
                 if (!errorModal.classList.contains('hidden')) {
                     errorModal.classList.add('hidden');
                 }
+                const teamModal = document.getElementById('teamModal');
+                if (!teamModal.classList.contains('hidden')) {
+                    closeTeamModal();
+                }
             }
         });
         
@@ -1608,6 +1903,206 @@
             } else {
                 icon.classList.remove('ph-caret-down');
                 icon.classList.add('ph-caret-up');
+            }
+        }
+        
+        // --- TEAM LOGIC ---
+        
+        function updateTeamButtonState() {
+            if (!currentModalPokemon) return;
+            
+            const isInTeam = myTeam.some(p => p.name === currentModalPokemon.displayName);
+            if (isInTeam) {
+                addToTeamBtn.innerHTML = '<i class="ph ph-minus text-xl text-red-500"></i>';
+                addToTeamBtn.title = "Remove from Team";
+            } else {
+                addToTeamBtn.innerHTML = '<i class="ph ph-plus text-xl text-green-500"></i>';
+                addToTeamBtn.title = "Add to Team";
+                if (myTeam.length >= 6) {
+                    addToTeamBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    addToTeamBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        }
+        
+        function toggleTeamMember() {
+            if (!currentModalPokemon) return;
+            
+            const existingIndex = myTeam.findIndex(p => p.name === currentModalPokemon.displayName);
+            
+            if (existingIndex > -1) {
+                // Remove
+                myTeam.splice(existingIndex, 1);
+                showToast(`Removed ${currentModalPokemon.displayName} from team`, 'error');
+                updateTeamButtonState();
+            } else {
+                // Add
+                if (myTeam.length >= 6) {
+                    alert("Team is full! Remove a Pokemon first.");
+                    return;
+                }
+                // Store minimal info needed
+                myTeam.push({
+                    name: currentModalPokemon.displayName,
+                    image: currentModalPokemon.image,
+                    types: currentModalPokemon.types || [] // Store types for analysis
+                });
+                showToast(`Added ${currentModalPokemon.displayName} to team`);
+                
+                // Close modal on add for faster workflow
+                closeModalFunc();
+            }
+            
+            localStorage.setItem('myTeam', JSON.stringify(myTeam));
+            // updateTeamButtonState(); 
+            // We update button state immediately if removing (and staying open),
+            // or we update it when re-opening modal for that mon.
+
+            updateTeamUI(); // Update the main list immediately
+        }
+
+        function showToast(message, type = 'success') {
+            const icon = toast.querySelector('i');
+            toastMsg.textContent = message;
+            
+            if (type === 'error') {
+                icon.className = "ph ph-minus-circle text-red-400 text-lg";
+            } else {
+                icon.className = "ph ph-check-circle text-green-400 text-lg";
+            }
+            
+            toast.classList.remove('opacity-0', 'translate-y-4');
+            
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-4');
+            }, 2500);
+        }
+        
+        function updateTeamUI() {
+            teamCount.textContent = `(${myTeam.length}/6)`;
+            
+            // Render Team Modal Grid
+            teamGrid.innerHTML = '';
+            
+            if (myTeam.length === 0) {
+                emptyTeamMsg.classList.remove('hidden');
+                teamAnalysis.classList.add('hidden');
+            } else {
+                emptyTeamMsg.classList.add('hidden');
+                teamAnalysis.classList.remove('hidden');
+                
+                myTeam.forEach((p, index) => {
+                     const card = document.createElement('div');
+                     card.className = "bg-gray-50 border border-gray-200 rounded-lg p-2 flex flex-col items-center relative group";
+                     card.innerHTML = `
+                        <button onclick="removeTeamMember(${index})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-600 focus:outline-none">
+                            <i class="ph ph-x text-xs"></i>
+                        </button>
+                        <img src="${p.image}" class="w-12 h-12 object-contain mb-1">
+                        <span class="text-[9px] font-bold text-gray-700 text-center leading-tight truncate w-full">${p.name}</span>
+                     `;
+                     teamGrid.appendChild(card);
+                });
+                
+                // Do algorithmic analysis
+                renderTeamAnalysis();
+            }
+        }
+        
+        function removeTeamMember(index) {
+            const removedName = myTeam[index].name;
+            myTeam.splice(index, 1);
+            localStorage.setItem('myTeam', JSON.stringify(myTeam));
+            updateTeamUI();
+            if (currentModalPokemon) updateTeamButtonState(); // Update modal btn if open
+            showToast(`Removed ${removedName} from team`, 'error');
+        }
+        
+        function openTeamModal() {
+            teamModal.classList.remove('hidden');
+        }
+        
+        function closeTeamModal() {
+            teamModal.classList.add('hidden');
+            // Clear AI response when closing to reset state
+            // aiResponse.classList.add('hidden'); 
+            // aiResponse.innerHTML = '';
+        }
+        
+        function renderTeamAnalysis() {
+            // Aggregate Weaknesses
+            const weaknessCounts = {};
+            
+            myTeam.forEach(member => {
+                // If we saved types, calculate. 
+                // Note: If added before types were saved (legacy), this might fail gracefully.
+                if (member.types) {
+                     const { weak2x, weak4x } = calculateWeaknesses(member.types);
+                     [...weak2x, ...weak4x].forEach(t => {
+                         weaknessCounts[t] = (weaknessCounts[t] || 0) + 1;
+                     });
+                }
+            });
+            
+            // Find major weaknesses (3+ members weak)
+            const majorWeaknesses = Object.entries(weaknessCounts)
+                .filter(([type, count]) => count >= 3)
+                .map(([type]) => type);
+                
+            if (majorWeaknesses.length > 0) {
+                 teamCoverage.innerHTML = `<span class="text-red-600 font-bold">Major Weakness Warning:</span> Your team struggles against <span class="font-bold">${majorWeaknesses.join(', ')}</span> types.`;
+            } else {
+                 teamCoverage.innerHTML = `<span class="text-green-600 font-bold">Good Coverage:</span> No major shared weaknesses found.`;
+            }
+        }
+        
+        async function analyzeTeamAI() {
+            if (!GEMINI_API_KEY) {
+                alert("Please set your Gemini API Key in Settings first!");
+                toggleSettings();
+                return;
+            }
+            
+            aiResponse.classList.remove('hidden');
+            aiResponse.innerHTML = '<div class="flex items-center gap-2"><div class="spinner w-4 h-4 border-2"></div> <span class="italic">Coach is thinking...</span></div>';
+            
+            const teamNames = myTeam.map(p => p.name).join(', ');
+            const prompt = `
+                I am building a Pokemon team for single battles. 
+                My current team is: ${teamNames}.
+                Please analyze this team briefly. 
+                1. Rate it out of 10.
+                2. Identify 1 major strength and 1 major weakness.
+                3. Suggest 1 move or strategy.
+                Keep it concise (under 100 words).
+            `;
+            
+             const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                     aiResponse.innerHTML = `<span class="text-red-500 font-bold">Error: ${data.error.message}</span>`;
+                     return;
+                }
+                
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                // Simple formatting for markdown
+                const formattedText = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+                
+                aiResponse.innerHTML = formattedText;
+                
+            } catch (err) {
+                 aiResponse.innerHTML = `<span class="text-red-500 font-bold">Network Error. Check connection.</span>`;
             }
         }
     </script>
