@@ -6,7 +6,7 @@
     <title>Living Pokédex</title>
     
     <!-- SEO & Social Sharing -->
-    <meta name="description" content="A Living Pokédex with AI Voice Search and Evolution Paths.">
+    <meta name="description" content="A Living Pokédex with AI Voice Search, Evolution Paths, and Battle Weaknesses.">
     <meta property="og:title" content="Living Pokédex">
     <meta property="og:description" content="Interactive Pokédex with voice search powered by Gemini.">
     <meta property="og:type" content="website">
@@ -84,6 +84,8 @@
 
         /* Type Colors */
         .type-pill { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .type-pill-sm { padding: 2px 8px; font-size: 0.65rem; }
+        
         .type-normal { background-color: #A8A77A; }
         .type-fire { background-color: #EE8130; }
         .type-water { background-color: #6390F0; }
@@ -230,7 +232,7 @@
                 </div>
                 
                 <div class="text-center md:text-left flex-1">
-                    <div class="flex flex-col md:flex-row items-center md:items-baseline gap-3 mb-2">
+                    <div class="flex flex-col md:flex-row items-center md:items-baseline gap-3 mb-1">
                         <h2 id="modalName" class="text-3xl font-bold text-gray-800 capitalize leading-tight"></h2>
                         <div class="flex items-center gap-2">
                             <span id="modalId" class="text-xl font-mono text-gray-500"></span>
@@ -239,11 +241,16 @@
                     </div>
                     
                     <!-- Types Container -->
-                    <div id="modalTypes" class="flex flex-wrap justify-center md:justify-start gap-2 mb-4">
+                    <div id="modalTypes" class="flex flex-wrap justify-center md:justify-start gap-2 mb-3">
                         <!-- Injected JS -->
                     </div>
 
-                    <a id="wikiLink" href="#" target="_blank" class="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium">
+                    <!-- Weaknesses Container -->
+                    <div id="weaknessContainer" class="mb-4">
+                        <!-- Injected JS -->
+                    </div>
+
+                    <a id="wikiLink" href="#" target="_blank" class="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium text-sm">
                         View on Bulbapedia
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                     </a>
@@ -353,12 +360,43 @@
             9: { start: 906, end: 1025 }
         };
 
+        // Type Effectiveness Matrix (Simplified for key weaknesses)
+        // 0: Normal, 1: Fire, 2: Water, 3: Electric, 4: Grass, 5: Ice, 
+        // 6: Fighting, 7: Poison, 8: Ground, 9: Flying, 10: Psychic, 
+        // 11: Bug, 12: Rock, 13: Ghost, 14: Dragon, 15: Steel, 16: Dark, 17: Fairy
+        const TYPE_NAMES = [
+            'normal', 'fire', 'water', 'electric', 'grass', 'ice', 
+            'fighting', 'poison', 'ground', 'flying', 'psychic', 
+            'bug', 'rock', 'ghost', 'dragon', 'steel', 'dark', 'fairy'
+        ];
+
+        // Rows = Attacker, Cols = Defender. Values: 0 (No effect), 0.5 (Not very), 1 (Normal), 2 (Super)
+        const TYPE_CHART = [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.5, 0, 1, 0.5, 1, 1], // Normal
+            [1, 0.5, 0.5, 1, 2, 2, 1, 1, 1, 1, 1, 2, 0.5, 1, 0.5, 2, 1, 1], // Fire
+            [1, 2, 0.5, 1, 0.5, 1, 1, 1, 2, 1, 1, 1, 2, 1, 0.5, 1, 1, 1], // Water
+            [1, 1, 2, 0.5, 0.5, 1, 1, 1, 0, 2, 1, 1, 1, 1, 0.5, 1, 1, 1], // Electric
+            [1, 0.5, 2, 1, 0.5, 1, 1, 0.5, 2, 0.5, 1, 0.5, 2, 1, 0.5, 0.5, 1, 1], // Grass
+            [1, 0.5, 0.5, 1, 2, 0.5, 1, 1, 2, 2, 1, 1, 1, 1, 2, 0.5, 1, 1], // Ice
+            [2, 1, 1, 1, 1, 2, 1, 0.5, 1, 0.5, 0.5, 0.5, 2, 0, 1, 2, 2, 0.5], // Fighting
+            [1, 1, 1, 1, 2, 1, 1, 0.5, 0.5, 1, 1, 1, 0.5, 0.5, 1, 0, 1, 2], // Poison
+            [1, 2, 1, 2, 0.5, 1, 1, 2, 1, 0, 1, 0.5, 2, 1, 1, 2, 1, 1], // Ground
+            [1, 1, 1, 0.5, 2, 1, 2, 1, 1, 1, 1, 2, 0.5, 1, 1, 0.5, 1, 1], // Flying
+            [1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 0.5, 1, 1, 1, 1, 0.5, 0, 1], // Psychic
+            [1, 0.5, 1, 1, 2, 1, 0.5, 0.5, 1, 0.5, 2, 1, 1, 0.5, 1, 0.5, 2, 0.5], // Bug
+            [1, 2, 1, 1, 1, 2, 0.5, 1, 0.5, 2, 1, 2, 1, 1, 1, 0.5, 1, 1], // Rock
+            [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 0.5, 1], // Ghost
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 0.5, 1, 0], // Dragon
+            [1, 0.5, 0.5, 0.5, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 0.5, 1, 2], // Steel
+            [1, 1, 1, 1, 1, 1, 0.5, 1, 1, 1, 2, 1, 1, 2, 1, 1, 0.5, 0.5], // Dark
+            [1, 0.5, 1, 1, 1, 1, 2, 0.5, 1, 1, 1, 1, 1, 1, 2, 0.5, 2, 1]  // Fairy
+        ];
+
         let allPokemon = [];
         let browserRecognition; 
         let mediaRecorder;
         let audioChunks = [];
         let GEMINI_API_KEY = localStorage.getItem('gemini_api_key') || "";
-        // DEFAULT IS NOW 1.5-FLASH-LATEST as requested
         let GEMINI_MODEL = localStorage.getItem('gemini_model') || "gemini-1.5-flash-latest";
         let lastErrorDetail = "";
 
@@ -388,6 +426,7 @@
         const errorDetailText = document.getElementById('errorDetailText');
         const fetchStatus = document.getElementById('fetchStatus');
         const modalTypes = document.getElementById('modalTypes');
+        const weaknessContainer = document.getElementById('weaknessContainer');
 
         // --- Initialize ---
         init();
@@ -424,8 +463,6 @@
 
         // --- Helper: Clean Names ---
         function cleanName(name) {
-            // Remove specific suffixes that clutter the UI
-            // Common default forms in API that shouldn't appear in list
             const suffixesToRemove = [
                 '-normal', '-attack', '-defense', '-speed', '-plant', '-sandy', '-trash',
                 '-overcast', '-east', '-west', '-standard', '-incarnate', '-therian',
@@ -438,18 +475,49 @@
 
             let cleaned = name;
             
-            // Special cases where we keep the suffix or format differently
             if (name.startsWith('tapu-') || name.startsWith('iron-') || name.startsWith('scream-') || name.startsWith('flutter-') || name.startsWith('great-') || name.startsWith('brute-') || name.startsWith('sandy-') || name.startsWith('slither-') || name.startsWith('walking-') || name.startsWith('raging-') || name.startsWith('gouging-') || name.startsWith('roaring-') || name.startsWith('iron-') || name === 'ho-oh' || name === 'porygon-z' || name === 'type-null' || name === 'jangmo-o' || name === 'hakamo-o' || name === 'kommo-o') {
-                // Keep these as is (just capitalization later)
+                // Keep these
             } else {
                 for (const suffix of suffixesToRemove) {
                     if (cleaned.endsWith(suffix)) {
                         cleaned = cleaned.substring(0, cleaned.length - suffix.length);
-                        break; // Only remove one suffix
+                        break; 
                     }
                 }
             }
             return cleaned;
+        }
+
+        // --- Battle Logic ---
+        function calculateWeaknesses(types) {
+            // types is array like [{type:{name:"fire"}}, {type:{name:"flying"}}]
+            const multipliers = {};
+            
+            // Initialize
+            TYPE_NAMES.forEach(t => multipliers[t] = 1);
+
+            // Multiply for each defending type
+            types.forEach(t => {
+                const defIndex = TYPE_NAMES.indexOf(t.type.name);
+                if (defIndex === -1) return;
+
+                // For every attacking type, how effective is it against this defIndex?
+                TYPE_NAMES.forEach((atkType, atkIndex) => {
+                    const mult = TYPE_CHART[atkIndex][defIndex];
+                    multipliers[atkType] *= mult;
+                });
+            });
+
+            // Filter for 2x and 4x
+            const weak2x = [];
+            const weak4x = [];
+
+            for (const [type, mult] of Object.entries(multipliers)) {
+                if (mult === 2) weak2x.push(type);
+                if (mult === 4) weak4x.push(type);
+            }
+
+            return { weak2x, weak4x };
         }
 
         // --- Settings Logic ---
@@ -774,7 +842,6 @@
             reader.readAsDataURL(blob);
             reader.onloadend = async () => {
                 const base64data = reader.result.split(',')[1];
-                
                 let mimeType = reader.result.split(',')[0].match(/:(.*?);/)[1];
                 if (mimeType.includes(';')) {
                     mimeType = mimeType.split(';')[0];
@@ -817,15 +884,12 @@
                     }
 
                     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    
                     let pokeName = null;
-                    let reason = "";
                     try {
                         const jsonStr = text.match(/\{.*\}/s)?.[0];
                         if (jsonStr) {
                             const parsed = JSON.parse(jsonStr);
                             pokeName = parsed.name;
-                            reason = parsed.reason;
                         }
                     } catch (e) { }
 
@@ -847,7 +911,6 @@
             };
         }
 
-        // --- Shared Logic ---
         function resetMicState() {
             fabMic.classList.remove('browser-listening', 'ai-listening', 'ai-processing');
             if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
@@ -895,7 +958,6 @@
             return matrix[b.length][a.length];
         }
 
-        // --- Standard Logic ---
         function getGeneration(id) {
             for (const [gen, range] of Object.entries(GENERATIONS)) if (id >= range.start && id <= range.end) return parseInt(gen);
             return 9;
@@ -980,6 +1042,7 @@
             evoContainer.innerHTML = '';
             gamesContainer.innerHTML = '<span class="italic text-gray-400">Loading...</span>';
             modalTypes.innerHTML = ''; // Clear types
+            weaknessContainer.innerHTML = ''; // Clear weaknesses
             evoLoading.classList.remove('hidden');
 
             try {
@@ -1001,13 +1064,35 @@
                         pill.textContent = t.type.name;
                         modalTypes.appendChild(pill);
                     });
+
+                    // 2. Render Weaknesses (Based on types)
+                    const { weak2x, weak4x } = calculateWeaknesses(mainData.types);
+                    
+                    if (weak4x.length > 0 || weak2x.length > 0) {
+                        let wHtml = '';
+                        
+                        if (weak4x.length > 0) {
+                            wHtml += `<div class="mb-2"><span class="text-xs font-bold text-red-600 uppercase tracking-wide block mb-1">Extreme Threat (4x)</span><div class="flex flex-wrap gap-1">`;
+                            weak4x.forEach(t => wHtml += `<span class="type-pill type-pill-sm type-${t}">${t}</span>`);
+                            wHtml += `</div></div>`;
+                        }
+                        
+                        if (weak2x.length > 0) {
+                            wHtml += `<div><span class="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Weakness (2x)</span><div class="flex flex-wrap gap-1">`;
+                            weak2x.forEach(t => wHtml += `<span class="type-pill type-pill-sm type-${t}">${t}</span>`);
+                            wHtml += `</div></div>`;
+                        }
+                        weaknessContainer.innerHTML = wHtml;
+                    } else {
+                        weaknessContainer.innerHTML = `<span class="text-xs text-gray-400 italic">No weaknesses found (possibly unknown types).</span>`;
+                    }
                 }
 
-                // 2. Render Evolution
+                // 3. Render Evolution
                 evoLoading.classList.add('hidden');
                 renderEvolutionChain(evoData.chain);
 
-                // 3. Render Games
+                // 4. Render Games
                 if (speciesData.flavor_text_entries && speciesData.flavor_text_entries.length > 0) {
                     gamesContainer.innerHTML = '';
                     const uniqueVersions = new Set();
@@ -1112,5 +1197,3 @@
     </script>
 </body>
 </html>
-
-
