@@ -266,7 +266,7 @@
                     <div class="flex flex-col items-center">
                         <!-- Image -->
                         <div class="relative w-32 h-32 flex items-center justify-center mb-1">
-                             <img id="modalImg" src="" alt="Pokemon" class="w-full h-full object-contain filter drop-shadow-md">
+                             <img id="modalImg" src="" alt="Pokemon" class="w-full h-full object-contain filter drop-shadow-md" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + (this.dataset.id || 1) + '.png'">
                         </div>
                         
                         <!-- Name & Details -->
@@ -319,7 +319,12 @@
                     <div id="evoContainer" class="flex flex-row flex-wrap items-center justify-center gap-1 min-h-[60px]"></div>
                 </div>
                 
-                <hr class="border-gray-100 mb-4">
+                <!-- Special Forms Section -->
+                <div id="formsSection" class="hidden mb-4">
+                    <h3 class="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Special Forms</h3>
+                    <div id="formsContainer" class="flex flex-row flex-wrap items-center justify-center gap-4 min-h-[60px]"></div>
+                    <hr id="formsDivider" class="border-gray-100 mt-4">
+                </div>
 
                 <!-- Appearances Section -->
                 <div class="mb-4">
@@ -444,6 +449,10 @@
             'hydrapple': 'Applin'
         };
 
+        const STANDARD_EVOLUTIONS_TO_BLOCK_IF_REGIONAL = [
+            'persian', 'cofagrigus', 'raichu', 'marowak', 'exeggutor', 'weezing', 'linoone'
+        ];
+        
         const GAME_REGIONS = {
             'red': 'Kanto', 'blue': 'Kanto', 'yellow': 'Kanto', 'fire-red': 'Kanto', 'leaf-green': 'Kanto', 'lets-go-pikachu': 'Kanto', 'lets-go-eevee': 'Kanto',
             'gold': 'Johto', 'silver': 'Johto', 'crystal': 'Johto', 'heart-gold': 'Johto', 'soul-silver': 'Johto',
@@ -455,10 +464,6 @@
             'sword': 'Galar', 'shield': 'Galar',
             'scarlet': 'Paldea', 'violet': 'Paldea'
         };
-
-        const STANDARD_EVOLUTIONS_TO_BLOCK_IF_REGIONAL = [
-            'persian', 'cofagrigus', 'raichu', 'marowak', 'exeggutor', 'weezing', 'linoone'
-        ];
 
         const TYPE_NAMES = [
             'normal', 'fire', 'water', 'electric', 'grass', 'ice', 
@@ -524,6 +529,8 @@
         const modalStats = document.getElementById('modalStats');
         const roleContainer = document.getElementById('roleContainer');
         const statsToggleBtn = document.getElementById('statsToggleBtn');
+        const formsSection = document.getElementById('formsSection');
+        const formsContainer = document.getElementById('formsContainer');
 
         init();
         updateFabStates();
@@ -617,6 +624,20 @@
                 }
             }
             return cleaned;
+        }
+
+        // Helper to format special form names like Mega/Gmax
+        function formatSpecialFormName(name) {
+            if (name.includes('-mega')) {
+                let suffix = '';
+                if (name.includes('-x')) suffix = ' X';
+                if (name.includes('-y')) suffix = ' Y';
+                return 'Mega ' + formatName(name.replace('-mega', '').replace('-x', '').replace('-y', '')) + suffix;
+            }
+            if (name.includes('-gmax')) return 'Gigantamax ' + formatName(name.replace('-gmax', ''));
+            if (name.includes('-primal')) return 'Primal ' + formatName(name.replace('-primal', ''));
+            if (name.includes('-eternamax')) return 'Eternamax ' + formatName(name.replace('-eternamax', ''));
+            return formatName(name);
         }
 
         function calculateWeaknesses(types) {
@@ -751,6 +772,19 @@
             if (lastErrorDetail) {
                 errorDetailText.textContent = lastErrorDetail;
                 errorModal.classList.remove('hidden');
+            }
+        }
+        
+        // --- Toggle Stats Logic ---
+        function toggleStats() {
+            modalStats.classList.toggle('hidden');
+            const icon = document.getElementById('statsToggleIcon');
+            if (modalStats.classList.contains('hidden')) {
+                icon.classList.remove('ph-caret-up');
+                icon.classList.add('ph-caret-down');
+            } else {
+                icon.classList.remove('ph-caret-down');
+                icon.classList.add('ph-caret-up');
             }
         }
 
@@ -1155,6 +1189,9 @@
         // --- Modal ---
         async function openModal(poke) {
             document.getElementById('modalImg').src = poke.image;
+            // Set data-id for fallback in case high-res image fails
+            document.getElementById('modalImg').dataset.id = poke.id; 
+            
             document.getElementById('modalName').textContent = poke.displayName;
             document.getElementById('modalId').textContent = poke.displayId;
             document.getElementById('modalGen').textContent = poke.generation;
@@ -1169,6 +1206,7 @@
             weaknessContainer.innerHTML = ''; // Clear weaknesses
             modalStats.innerHTML = ''; // Clear stats
             roleContainer.innerHTML = ''; // Clear roles
+            formsSection.classList.add('hidden'); // Clear special forms
             evoLoading.classList.remove('hidden');
 
             try {
@@ -1278,8 +1316,49 @@
                 // 4. Render Evolution
                 evoLoading.classList.add('hidden');
                 renderEvolutionChain(evoData.chain, poke.displayName);
+                
+                // 5. Render Special Forms (Mega/Gmax)
+                if (speciesData.varieties) {
+                     const specialForms = speciesData.varieties.filter(v => {
+                        const n = v.pokemon.name;
+                        // Exclude default and Totem
+                        return !v.is_default && (n.includes('-mega') || n.includes('-gmax') || n.includes('-primal') || n.includes('-eternamax') || n.includes('-ultra'));
+                     });
+                     
+                     if (specialForms.length > 0) {
+                         formsContainer.innerHTML = '';
+                         specialForms.forEach(form => {
+                             const id = form.pokemon.url.split('/')[6];
+                             const name = formatSpecialFormName(form.pokemon.name);
+                             const imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+                             
+                             const formDiv = document.createElement('div');
+                             formDiv.className = "flex flex-col items-center p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group w-20";
+                             
+                             formDiv.onclick = (e) => {
+                                 e.stopPropagation();
+                                 // Create a temp object to open modal with
+                                 const tempPoke = {
+                                     id: id,
+                                     displayName: name,
+                                     generation: poke.generation, // Assume same gen as base
+                                     displayId: poke.displayId,
+                                     image: imgUrl
+                                 };
+                                 openModal(tempPoke);
+                             };
 
-                // 5. Render Games
+                             formDiv.innerHTML = `
+                                <div class="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-1 shadow-sm border border-gray-200 group-hover:border-blue-200"><img src="${imgUrl}" class="w-10 h-10 object-contain" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png'"></div>
+                                <span class="text-[9px] font-bold text-gray-600 text-center leading-tight truncate w-full">${name}</span>
+                             `;
+                             formsContainer.appendChild(formDiv);
+                         });
+                         formsSection.classList.remove('hidden');
+                     }
+                }
+
+                // 6. Render Games
                 if (speciesData.flavor_text_entries && speciesData.flavor_text_entries.length > 0) {
                     gamesContainer.innerHTML = '';
                     const uniqueVersions = new Set();
