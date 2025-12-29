@@ -110,6 +110,7 @@
 
         /* Type Colors */
         .type-pill { padding: 3px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .type-pill-sm { padding: 2px 8px; font-size: 0.65rem; }
         
         .type-normal { background-color: #A8A77A; }
         .type-fire { background-color: #EE8130; }
@@ -323,8 +324,8 @@
                 <!-- Appearances Section -->
                 <div class="mb-4">
                     <h3 class="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Appearances</h3>
-                    <div id="gamesContainer" class="flex flex-wrap justify-center gap-1 text-[10px]">
-                        <span class="italic text-gray-400">Loading...</span>
+                    <div id="gamesContainer" class="flex flex-col gap-2 text-[10px]">
+                        <span class="italic text-gray-400 text-center">Loading...</span>
                     </div>
                 </div>
 
@@ -442,7 +443,7 @@
             'dipplin': 'Applin',
             'hydrapple': 'Applin'
         };
-        
+
         const GAME_REGIONS = {
             'red': 'Kanto', 'blue': 'Kanto', 'yellow': 'Kanto', 'fire-red': 'Kanto', 'leaf-green': 'Kanto', 'lets-go-pikachu': 'Kanto', 'lets-go-eevee': 'Kanto',
             'gold': 'Johto', 'silver': 'Johto', 'crystal': 'Johto', 'heart-gold': 'Johto', 'soul-silver': 'Johto',
@@ -750,19 +751,6 @@
             if (lastErrorDetail) {
                 errorDetailText.textContent = lastErrorDetail;
                 errorModal.classList.remove('hidden');
-            }
-        }
-        
-        // --- Toggle Stats Logic ---
-        function toggleStats() {
-            modalStats.classList.toggle('hidden');
-            const icon = document.getElementById('statsToggleIcon');
-            if (modalStats.classList.contains('hidden')) {
-                icon.classList.remove('ph-caret-up');
-                icon.classList.add('ph-caret-down');
-            } else {
-                icon.classList.remove('ph-caret-down');
-                icon.classList.add('ph-caret-up');
             }
         }
 
@@ -1301,34 +1289,82 @@
                         }
                     });
 
-                    if(uniqueVersions.size > 0) {
-                        uniqueVersions.forEach(ver => {
-                            const tag = document.createElement('span');
-                            let colorClass = 'tag-default';
-                            if(ver.includes('red') || ver.includes('ruby')) colorClass = 'tag-red';
-                            else if(ver.includes('blue') || ver.includes('sapphire')) colorClass = 'tag-blue';
-                            else if(ver.includes('yellow')) colorClass = 'tag-yellow';
-                            else if(ver.includes('gold') || ver.includes('sun')) colorClass = 'tag-gold';
-                            else if(ver.includes('silver') || ver.includes('moon')) colorClass = 'tag-silver';
-                            else if(ver.includes('crystal') || ver.includes('diamond')) colorClass = 'tag-crystal';
-                            else if(ver.includes('emerald')) colorClass = 'tag-emerald';
-                            else if(ver.includes('pearl')) colorClass = 'tag-pearl';
-                            else if(ver.includes('platinum')) colorClass = 'tag-platinum';
-                            else if(ver.includes('black')) colorClass = 'tag-black';
-                            else if(ver.includes('white')) colorClass = 'tag-white';
-                            else if(ver.includes('sword')) colorClass = 'tag-sword';
-                            else if(ver.includes('shield')) colorClass = 'tag-shield';
-                            else if(ver.includes('x')) colorClass = 'tag-x';
-                            else if(ver.includes('y')) colorClass = 'tag-y';
-                            else if(ver.includes('scarlet')) colorClass = 'tag-scarlet';
-                            else if(ver.includes('violet')) colorClass = 'tag-violet';
-                            else if(ver.includes('legends') || ver.includes('arceus')) colorClass = 'tag-legends-arceus';
+                    // Sort groups based on generation order for better UX (optional but nice)
+                    // We'll map version names to generation order or just group by hardcoded sets.
+                    // For now, rely on API order but group by region for display.
+                    // Since we want specific order: Kanto -> Johto -> Hoenn -> Sinnoh -> Unova -> Kalos -> Alola -> Galar -> Paldea
+                    
+                    // Group games by region using GAME_REGIONS mapping
+                    const regionGroups = {};
+                    uniqueVersions.forEach(ver => {
+                        // Normalize version name for mapping lookup
+                        // Some versions might need tweaks (e.g. 'alpha-sapphire')
+                        let lookupVer = ver;
+                        
+                        // Check exact match first
+                        let region = GAME_REGIONS[lookupVer];
+                        
+                        // If not found, try simple includes or fallback
+                        if (!region) {
+                             if(lookupVer.includes('red') || lookupVer.includes('blue') || lookupVer.includes('yellow')) region = 'Kanto';
+                             else if(lookupVer.includes('gold') || lookupVer.includes('silver') || lookupVer.includes('crystal')) region = 'Johto';
+                             else if(lookupVer.includes('ruby') || lookupVer.includes('sapphire') || lookupVer.includes('emerald')) region = 'Hoenn';
+                             else if(lookupVer.includes('diamond') || lookupVer.includes('pearl') || lookupVer.includes('platinum')) region = 'Sinnoh';
+                             else if(lookupVer.includes('black') || lookupVer.includes('white')) region = 'Unova';
+                             else if(lookupVer.includes('x') || lookupVer.includes('y')) region = 'Kalos';
+                             else if(lookupVer.includes('sun') || lookupVer.includes('moon')) region = 'Alola';
+                             else if(lookupVer.includes('sword') || lookupVer.includes('shield')) region = 'Galar';
+                             else if(lookupVer.includes('scarlet') || lookupVer.includes('violet')) region = 'Paldea';
+                             else region = 'Other';
+                        }
+                        
+                        if (!regionGroups[region]) regionGroups[region] = [];
+                        regionGroups[region].push(ver);
+                    });
 
-                            tag.className = `game-tag ${colorClass}`;
-                            tag.textContent = ver.replace(/-/g, ' ');
-                            gamesContainer.appendChild(tag);
-                        });
-                    } else {
+                    // Define display order
+                    const regionOrder = ['Kanto', 'Johto', 'Hoenn', 'Sinnoh', 'Unova', 'Kalos', 'Alola', 'Galar', 'Hisui', 'Paldea', 'Other'];
+                    
+                    let hasGames = false;
+                    regionOrder.forEach(region => {
+                        if (regionGroups[region]) {
+                            hasGames = true;
+                            // Create Region Header
+                            const regionHeader = document.createElement('div');
+                            regionHeader.className = "w-full text-xs font-bold text-gray-400 uppercase tracking-widest mt-2 mb-1 pl-1 text-center sm:text-left";
+                            regionHeader.textContent = region;
+                            gamesContainer.appendChild(regionHeader);
+                            
+                            // Create Game Badges container for this region
+                            const badgeRow = document.createElement('div');
+                            badgeRow.className = "w-full flex flex-wrap justify-center sm:justify-start gap-2 mb-2 pl-1";
+                            
+                            regionGroups[region].forEach(ver => {
+                                const tag = document.createElement('span');
+                                // Reuse color logic but now simplified as we group by region
+                                let colorClass = 'tag-default';
+                                // Simple mapping based on version name string content
+                                if(ver.includes('red') || ver.includes('ruby') || ver.includes('y') || ver.includes('shield')) colorClass = 'tag-red';
+                                else if(ver.includes('blue') || ver.includes('sapphire') || ver.includes('x') || ver.includes('sword') || ver.includes('diamond')) colorClass = 'tag-blue';
+                                else if(ver.includes('yellow') || ver.includes('gold') || ver.includes('sun') || ver.includes('ultra-sun') || ver.includes('legends') || ver.includes('arceus')) colorClass = 'tag-yellow';
+                                else if(ver.includes('silver') || ver.includes('soul') || ver.includes('white') || ver.includes('moon') || ver.includes('ultra-moon')) colorClass = 'tag-silver';
+                                else if(ver.includes('crystal')) colorClass = 'tag-crystal';
+                                else if(ver.includes('emerald') || ver.includes('leaf')) colorClass = 'tag-emerald';
+                                else if(ver.includes('pearl')) colorClass = 'tag-pearl';
+                                else if(ver.includes('platinum')) colorClass = 'tag-platinum';
+                                else if(ver.includes('black')) colorClass = 'tag-black';
+                                else if(ver.includes('scarlet')) colorClass = 'tag-scarlet';
+                                else if(ver.includes('violet')) colorClass = 'tag-violet';
+
+                                tag.className = `game-tag ${colorClass}`;
+                                tag.textContent = ver.replace(/-/g, ' ');
+                                badgeRow.appendChild(tag);
+                            });
+                            gamesContainer.appendChild(badgeRow);
+                        }
+                    });
+
+                    if(!hasGames) {
                          gamesContainer.innerHTML = '<span class="italic text-gray-400">No game data found.</span>';
                     }
                 } else {
