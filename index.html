@@ -840,11 +840,12 @@
             const prompt = `
                 I am building a Pokemon team for single battles. 
                 My current team is: ${teamNames}.
-                Please analyze this team briefly. 
+                Please analyze this team.
                 1. Rate it out of 10.
                 2. Identify 1 major strength and 1 major weakness.
-                3. Suggest 1 move or strategy.
-                Keep it concise (under 100 words).
+                3. Recommend 2-3 key moves for specific members.
+                4. Suggest a replacement Pokemon (or Type) to better balance the team.
+                Keep it concise (under 150 words). Format with bolding for readability.
             `;
             
              const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
